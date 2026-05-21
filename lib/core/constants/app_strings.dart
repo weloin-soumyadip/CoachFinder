@@ -52,6 +52,21 @@ abstract final class AppStrings {
   static const String alreadyHaveAccount = 'Already have an account?';
   static const String signIn = 'Sign In';
 
+  // Student home screen
+  static const String homeGreetingPrefix = 'Hello, ';
+  static const String homeGreetingSuffix = '! 👋';
+  static const String homeSubtitle = 'Your growth journey continues today.';
+  static const String homeNextSessionLabel = 'NEXT SESSION';
+  static const String homeJoinSessionRoom = 'Join Session Room';
+  static const String homeTrendingTopics = 'Trending Topics';
+  static const String homeSeeAll = 'See all';
+  static const String homeRecommendedForYou = 'Recommended For You';
+  static const String homePersonalizedPath = 'Personalized Path';
+  static const String homeCurrentFocus = 'Current Focus';
+  static const String homeTrackProgress = 'Track Progress';
+  static const String homeViewInsights = 'View Insights';
+  static const String homePerHourSuffix = '/hr';
+
   // Phase 1 stub messages
   static const String stubAuthNotImplemented =
       'Phase 1: auth backend not implemented yet.';

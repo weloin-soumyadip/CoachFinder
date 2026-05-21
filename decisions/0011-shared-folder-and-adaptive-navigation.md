@@ -22,7 +22,11 @@ lib/shared/
 └── widgets/                       (empty for now; reserved for future use)
 ```
 
-`AdaptiveNavigation` is a stateless widget that takes a list of `AdaptiveDestination`s and switches between `NavigationBar` (width < 600 dp) and `NavigationRail` (width ≥ 600 dp). The 600 dp breakpoint is Material 3's default and configurable via the `breakpoint` parameter.
+`AdaptiveNavigation` is a stateless widget that takes a list of `AdaptiveDestination`s and switches between `NavigationBar` (width < 768) and `NavigationRail` (width ≥ 768). The breakpoint is configurable via the `breakpoint` parameter.
+
+**Breakpoint history:** Initially set to 600 (Material 3 default) on creation. Bumped to **768** when the user adopted that as the app-wide responsive breakpoint for the Home redesign. 768 keeps phone landscape on the bottom-bar layout; only tablets and desktop see the rail/sidebar.
+
+**Bottom-nav styling:** `indicatorColor: AppColors.navIndicator` (soft green pill) and `backgroundColor: AppColors.neutralWhite` are hardcoded in the widget to match the Home screen design. Both student and owner shells inherit this — if owner needs a different accent later, parameterise.
 
 `_StudentShell` (4 tabs) and `_OwnerShell` (3 tabs) in `app_router.dart` were both refactored to consume `AdaptiveNavigation`. The previous hardcoded `NavigationBar` is gone from `app_router.dart`.
 
@@ -55,4 +59,4 @@ No migration of existing `core/widgets/` is planned in this change. If the categ
 
 - Single source of truth for nav chrome across both roles. Changing the breakpoint, label style, or selection accent now needs one edit.
 - Future Claude reading the codebase will see two shared-widget locations (`core/widgets/` and `shared/widgets/`) and needs this record to understand why.
-- `NavigationRail` is only triggered at >=600 dp. Phone landscape on most devices passes that threshold, so a landscape phone will see the rail instead of the bottom bar. If that's undesirable, raise the breakpoint to 840 dp (tablet+) when the design lands.
+- `NavigationRail` is only triggered at >=768 px (updated from 600 dp). Phone portrait and landscape both stay on the bottom bar. Tablets and desktop see the rail.

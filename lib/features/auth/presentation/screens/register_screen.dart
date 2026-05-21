@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/constants/hive_keys.dart';
+import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/storage/hive_service_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../widgets/auth_field_widget.dart';
@@ -42,12 +45,23 @@ class RegisterScreen extends HookConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(message)));
     }
 
-    void onCreateAccount() {
+    // TODO(real-auth): replace with the real register flow once the backend
+    // contract lands. Phase 1 dev shortcut: write a placeholder JWT and
+    // navigate into the role-appropriate shell.
+    Future<void> onCreateAccount() async {
       if (!termsAccepted.value) {
         stub(AppStrings.stubTermsRequired);
         return;
       }
-      stub(AppStrings.stubAuthNotImplemented);
+      final hive = ref.read(hiveServiceProvider);
+      await hive.authBox.put(HiveKeys.keyJwtToken, 'phase1-dev-token');
+      final role = ref.read(roleProvider) ?? initialRole ?? roleStudent;
+      if (!context.mounted) return;
+      context.goNamed(
+        role == roleStudent
+            ? AppRoutes.studentHome
+            : AppRoutes.ownerDashboard,
+      );
     }
 
     return Scaffold(

@@ -3,6 +3,8 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
+
 /// One navigation destination, expressed in a UI-agnostic shape so the same
 /// list can power either a [NavigationBar] or a [NavigationRail].
 class AdaptiveDestination {
@@ -34,7 +36,7 @@ class AdaptiveNavigation extends StatelessWidget {
     required this.destinations,
     required this.selectedIndex,
     required this.onDestinationSelected,
-    this.breakpoint = 600,
+    this.breakpoint = 768,
   })  : assert(destinations.length >= 2,
             'AdaptiveNavigation requires at least 2 destinations.'),
         assert(selectedIndex >= 0, 'selectedIndex must be non-negative.');
@@ -93,6 +95,10 @@ class AdaptiveNavigation extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected,
+        backgroundColor: AppColors.neutralWhite,
+        indicatorColor: AppColors.navIndicator,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         destinations: <NavigationDestination>[
           for (final d in destinations)
             NavigationDestination(

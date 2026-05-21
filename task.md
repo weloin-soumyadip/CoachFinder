@@ -16,7 +16,8 @@
 - [x] **Login screen UI** — branded badge, email + password with visibility toggle, Forgot Password link, Google / Apple buttons, Sign Up footer link. Submit / social / forgot-password buttons are stubbed via SnackBar (no backend wired)
 - [x] **Register screen UI** — top bar with back arrow, Google / Apple, Full Name / Email / Password / Confirm Password, Terms checkbox with inline links, CREATE ACCOUNT button, Sign In footer link. Same stub pattern.
 - [x] **`lib/shared/` folder added** — `shared/layouts/adaptive_navigation.dart` for the role-agnostic shell; `shared/widgets/` reserved. See [decision 0011](decisions/0011-shared-folder-and-adaptive-navigation.md).
-- [x] **AdaptiveNavigation wired into both shells** — `_StudentShell` and `_OwnerShell` in `app_router.dart` now use `AdaptiveNavigation` (`NavigationBar` < 600 dp, `NavigationRail` ≥ 600 dp).
+- [x] **AdaptiveNavigation wired into both shells** — `_StudentShell` and `_OwnerShell` in `app_router.dart` now use `AdaptiveNavigation` (`NavigationBar` < 768 px, `NavigationRail` ≥ 768 px). Breakpoint bumped from 600 to 768 to keep phone landscape on the bottom bar. Green nav indicator added per Home design.
+- [x] **Student Home (mobile)** — full layout built with fixture data: top bar, greeting, Next Session featured card, horizontally-scrolling Trending Topics rail, Recommended For You coach list, Personalized Path card with progress ring, action tiles row, chat FAB. Fixture file: `lib/features/student/home/data/mock_home_data.dart`. Widgets filled: `category_chip_widget.dart` (TopicChip) and `featured_card_widget.dart` (CoachCard).
 
 ## Known divergences
 

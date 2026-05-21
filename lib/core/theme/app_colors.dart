@@ -17,6 +17,15 @@ abstract final class AppColors {
   /// Soft neutral fill used for form input backgrounds in the auth flow.
   static const Color inputFill = Color(0xFFEEF1F6);
 
+  /// Selected-tab indicator colour on the bottom NavigationBar.
+  static const Color navIndicator = Color(0xFFC5E8C8);
+
+  /// "Per hour" price text colour on coach cards.
+  static const Color priceGreen = Color(0xFF2E7D4F);
+
+  /// Rating star colour.
+  static const Color ratingStar = Color(0xFFFFB400);
+
   /// Accent colour used by the coaching-owner experience.
   static const Color ownerAccent = Color(0xFFE05A2B);
 

@@ -7,7 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/constants/hive_keys.dart';
+import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/storage/hive_service_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../widgets/auth_field_widget.dart';
@@ -36,6 +39,22 @@ class LoginScreen extends HookConsumerWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
+    }
+
+    // TODO(real-auth): replace with the real login flow once the backend
+    // contract lands. Phase 1 dev shortcut: write a placeholder JWT and
+    // navigate into the role-appropriate shell so the UI can be exercised
+    // end-to-end without backend.
+    Future<void> handleLogIn() async {
+      final hive = ref.read(hiveServiceProvider);
+      await hive.authBox.put(HiveKeys.keyJwtToken, 'phase1-dev-token');
+      final role = ref.read(roleProvider) ?? initialRole ?? roleStudent;
+      if (!context.mounted) return;
+      context.goNamed(
+        role == roleStudent
+            ? AppRoutes.studentHome
+            : AppRoutes.ownerDashboard,
+      );
     }
 
     return Scaffold(
@@ -116,7 +135,7 @@ class LoginScreen extends HookConsumerWidget {
                     AuthPrimaryButton(
                       label: AppStrings.logInButton,
                       trailingIcon: Icons.login,
-                      onPressed: () => stub(AppStrings.stubAuthNotImplemented),
+                      onPressed: handleLogIn,
                     ),
                     const SizedBox(height: AppSpacing.sp16),
                     const AuthOrDivider(text: AppStrings.orContinueWith),
