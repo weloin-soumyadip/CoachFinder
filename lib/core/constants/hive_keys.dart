@@ -13,6 +13,7 @@ abstract final class HiveKeys {
 
   // Keys inside [boxSettings]
   static const String keyUserRole = 'user_role';
+  static const String keyThemeMode = 'theme_mode';
 
   // Keys inside [boxAuth]
   static const String keyJwtToken = 'jwt_token';

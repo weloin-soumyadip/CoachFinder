@@ -29,6 +29,12 @@ abstract final class AppColors {
   /// Accent colour used by the coaching-owner experience.
   static const Color ownerAccent = Color(0xFFE05A2B);
 
+  /// Accent colour used by the teacher experience.
+  static const Color teacherAccent = Color(0xFF0D9488);
+
+  /// Light tint of [teacherAccent], used for icon-chip backgrounds.
+  static const Color teacherAccentTint = Color(0xFFCCFBF1);
+
   /// High-emphasis call-to-action colour (call, enquire).
   static const Color ctaAmber = Color(0xFFF59E0B);
 
@@ -48,4 +54,24 @@ abstract final class AppColors {
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF3B82F6);
+
+  // Dark-theme neutrals ("Dim charcoal"). These are the dark counterparts of
+  // the light neutrals above and are consumed only by [AppPalette.dark] - UI
+  // code reads brightness-aware tokens via `context.palette`, never these
+  // directly.
+  static const Color darkBackground = Color(0xFF0F1115);
+  static const Color darkSurface = Color(0xFF1A1D23);
+  static const Color darkBorder = Color(0xFF2A2F38);
+  static const Color darkBorderSubtle = Color(0xFF21252C);
+  static const Color darkTextPrimary = Color(0xFFF3F4F6);
+  static const Color darkTextSecondary = Color(0xFFC7CDD6);
+  static const Color darkTextMuted = Color(0xFF9CA3AF);
+  static const Color darkIconFaint = Color(0xFF4B5563);
+  static const Color darkInputFill = Color(0xFF21252C);
+
+  /// Brand blue lightened for legibility as a foreground on dark surfaces.
+  static const Color darkPrimary = Color(0xFF7AA2F7);
+
+  /// Dark counterpart of [studentPrimaryTint] (badge / avatar fills).
+  static const Color darkPrimaryTint = Color(0xFF25304A);
 }

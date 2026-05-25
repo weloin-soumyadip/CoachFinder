@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../data/mock_home_data.dart';
 
@@ -38,7 +38,7 @@ class CategoryChipWidget extends StatelessWidget {
               Text(
                 topic.label,
                 style: textTheme.labelLarge?.copyWith(
-                  color: AppColors.neutralBlack,
+                  color: context.palette.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),

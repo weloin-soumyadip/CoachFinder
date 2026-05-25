@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 
 /// Themed text input used by the auth screens.
@@ -37,6 +37,7 @@ class AuthFieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     final radius = BorderRadius.circular(AppSpacing.sp12);
 
     return Column(
@@ -47,7 +48,7 @@ class AuthFieldWidget extends StatelessWidget {
             Text(
               label,
               style: textTheme.labelLarge?.copyWith(
-                color: AppColors.neutralGrey700,
+                color: palette.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -62,14 +63,13 @@ class AuthFieldWidget extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: textTheme.bodyLarge?.copyWith(color: AppColors.neutralBlack),
+          style: textTheme.bodyLarge?.copyWith(color: palette.textPrimary),
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.inputFill,
+            fillColor: palette.inputFill,
             hintText: hint,
-            hintStyle: textTheme.bodyMedium
-                ?.copyWith(color: AppColors.neutralGrey500),
-            prefixIcon: Icon(icon, color: AppColors.neutralGrey500, size: 20),
+            hintStyle: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+            prefixIcon: Icon(icon, color: palette.textMuted, size: 20),
             suffixIcon: trailing,
             border: OutlineInputBorder(
               borderRadius: radius,
@@ -81,8 +81,8 @@ class AuthFieldWidget extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: radius,
-              borderSide: const BorderSide(
-                color: AppColors.studentPrimary,
+              borderSide: BorderSide(
+                color: palette.primary,
                 width: 1.5,
               ),
             ),

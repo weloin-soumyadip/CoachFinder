@@ -22,12 +22,17 @@ import '../../features/student/search/presentation/screens/search_screen.dart';
 import '../../features/student/search/presentation/screens/filter_screen.dart';
 import '../../features/student/center_detail/presentation/screens/center_detail_screen.dart';
 import '../../features/student/profile/presentation/screens/student_profile_screen.dart';
-import '../../features/student/profile/presentation/screens/saved_screen.dart';
+import '../../features/student/saved/presentation/screens/saved_screen.dart';
 import '../../features/owner/dashboard/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/manage_center_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/create_center_screen.dart';
 import '../../features/owner/enquiry_inbox/presentation/screens/enquiry_inbox_screen.dart';
 import '../../features/owner/enquiry_inbox/presentation/screens/enquiry_detail_screen.dart';
+import '../../features/teacher/home/presentation/screens/teacher_home_screen.dart';
+import '../../features/teacher/search/presentation/screens/teacher_search_screen.dart';
+import '../../features/teacher/enquiries/presentation/screens/teacher_enquiries_screen.dart';
+import '../../features/teacher/schedule/presentation/screens/teacher_schedule_screen.dart';
+import '../../features/teacher/profile/presentation/screens/teacher_profile_screen.dart';
 
 /// Builds the [GoRouter] used by the app.
 ///
@@ -51,12 +56,27 @@ abstract final class AppRouter {
     '/enquiries',
     '/enquiry',
   ];
+  static const List<String> _teacherPrefixes = <String>[
+    '/teacher-home',
+    '/teacher-search',
+    '/teacher-enquiries',
+    '/teacher-schedule',
+    '/teacher-profile',
+  ];
 
   static bool _matchesPrefix(String loc, List<String> prefixes) {
     for (final p in prefixes) {
       if (loc == p || loc.startsWith('$p/')) return true;
     }
     return false;
+  }
+
+  /// The shell-home location for a given role. Used both to land a freshly
+  /// authenticated user and to bounce them out of another role's shell.
+  static String _homeFor(String role) {
+    if (role == roleOwner) return '/dashboard';
+    if (role == roleTeacher) return '/teacher-home';
+    return '/home'; // student (default)
   }
 
   /// Build the configured [GoRouter] instance. Called from `routerProvider`.
@@ -74,6 +94,7 @@ abstract final class AppRouter {
         final isAuthRoute = loc == '/login' || loc == '/register';
         final isStudentRoute = _matchesPrefix(loc, _studentPrefixes);
         final isOwnerRoute = _matchesPrefix(loc, _ownerPrefixes);
+        final isTeacherRoute = _matchesPrefix(loc, _teacherPrefixes);
 
         // No token: only the onboarding / auth flow is allowed.
         if (token == null || token.isEmpty) {
@@ -90,12 +111,16 @@ abstract final class AppRouter {
 
         // Token + role - kick out of onboarding / auth into the shell home.
         if (isOnboarding || isAuthRoute) {
-          return role == roleStudent ? '/home' : '/dashboard';
+          return _homeFor(role);
         }
 
-        // Cross-shell guard: roles can only navigate within their own shell.
-        if (role == roleStudent && isOwnerRoute) return '/home';
-        if (role == roleOwner && isStudentRoute) return '/dashboard';
+        // Cross-shell guard: a role can only navigate within its own shell.
+        // If the location belongs to a shell that isn't this role's, bounce
+        // back to this role's home.
+        final inOtherShell = (role != roleStudent && isStudentRoute) ||
+            (role != roleOwner && isOwnerRoute) ||
+            (role != roleTeacher && isTeacherRoute);
+        if (inOtherShell) return _homeFor(role);
 
         return null;
       },
@@ -191,6 +216,38 @@ abstract final class AppRouter {
               builder: (context, state) => EnquiryDetailScreen(
                 enquiryId: state.pathParameters['id'] ?? '',
               ),
+            ),
+          ],
+        ),
+
+        // Teacher shell
+        ShellRoute(
+          builder: (context, state, child) => _TeacherShell(child: child),
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/teacher-home',
+              name: AppRoutes.teacherHome,
+              builder: (context, state) => const TeacherHomeScreen(),
+            ),
+            GoRoute(
+              path: '/teacher-search',
+              name: AppRoutes.teacherSearch,
+              builder: (context, state) => const TeacherSearchScreen(),
+            ),
+            GoRoute(
+              path: '/teacher-enquiries',
+              name: AppRoutes.teacherEnquiries,
+              builder: (context, state) => const TeacherEnquiriesScreen(),
+            ),
+            GoRoute(
+              path: '/teacher-schedule',
+              name: AppRoutes.teacherSchedule,
+              builder: (context, state) => const TeacherScheduleScreen(),
+            ),
+            GoRoute(
+              path: '/teacher-profile',
+              name: AppRoutes.teacherProfile,
+              builder: (context, state) => const TeacherProfileScreen(),
             ),
           ],
         ),
@@ -301,6 +358,76 @@ class _OwnerShell extends StatelessWidget {
         context.goNamed(AppRoutes.ownerManageCenter);
       case 2:
         context.goNamed(AppRoutes.ownerEnquiryInbox);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = GoRouterState.of(context).matchedLocation;
+    return AdaptiveNavigation(
+      destinations: _destinations,
+      selectedIndex: _indexFor(loc),
+      onDestinationSelected: (i) => _onTap(context, i),
+      child: child,
+    );
+  }
+}
+
+/// Adaptive-nav shell for the teacher role. 5 tabs: Home, Search, Enquiries,
+/// Schedule, Profile. Same [AdaptiveNavigation] backing as the other shells.
+class _TeacherShell extends StatelessWidget {
+  const _TeacherShell({required this.child});
+
+  final Widget child;
+
+  static const List<AdaptiveDestination> _destinations = <AdaptiveDestination>[
+    AdaptiveDestination(
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home,
+      label: AppStrings.navHome,
+    ),
+    AdaptiveDestination(
+      icon: Icons.search,
+      selectedIcon: Icons.search,
+      label: AppStrings.navSearch,
+    ),
+    AdaptiveDestination(
+      icon: Icons.inbox_outlined,
+      selectedIcon: Icons.inbox,
+      label: AppStrings.navEnquiries,
+    ),
+    AdaptiveDestination(
+      icon: Icons.calendar_month_outlined,
+      selectedIcon: Icons.calendar_month,
+      label: AppStrings.navSchedule,
+    ),
+    AdaptiveDestination(
+      icon: Icons.person_outline,
+      selectedIcon: Icons.person,
+      label: AppStrings.navProfile,
+    ),
+  ];
+
+  static int _indexFor(String loc) {
+    if (loc.startsWith('/teacher-search')) return 1;
+    if (loc.startsWith('/teacher-enquiries')) return 2;
+    if (loc.startsWith('/teacher-schedule')) return 3;
+    if (loc.startsWith('/teacher-profile')) return 4;
+    return 0; // `/teacher-home`.
+  }
+
+  static void _onTap(BuildContext context, int i) {
+    switch (i) {
+      case 0:
+        context.goNamed(AppRoutes.teacherHome);
+      case 1:
+        context.goNamed(AppRoutes.teacherSearch);
+      case 2:
+        context.goNamed(AppRoutes.teacherEnquiries);
+      case 3:
+        context.goNamed(AppRoutes.teacherSchedule);
+      case 4:
+        context.goNamed(AppRoutes.teacherProfile);
     }
   }
 

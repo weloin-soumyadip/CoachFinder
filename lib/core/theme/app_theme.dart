@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_palette.dart';
 import 'app_text_styles.dart';
 
 /// Application themes - Material 3, light and dark, derived from
@@ -40,12 +41,15 @@ abstract final class AppTheme {
       seedColor: AppColors.studentPrimary,
       brightness: brightness,
     );
+    final palette =
+        brightness == Brightness.dark ? AppPalette.dark : AppPalette.light;
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       textTheme: _textTheme,
-      scaffoldBackgroundColor: colorScheme.surface,
+      scaffoldBackgroundColor: palette.background,
       visualDensity: VisualDensity.adaptivePlatformDensity,
+      extensions: <ThemeExtension<dynamic>>[palette],
     );
   }
 }

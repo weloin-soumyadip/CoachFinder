@@ -1,6 +1,8 @@
 /// Named route constants used by GoRouter and call sites.
 library;
 
+import '../providers/role_provider.dart';
+
 /// Named route identifiers. All `context.goNamed(...)` / `pushNamed(...)` calls
 /// must use one of these constants - never raw strings.
 abstract final class AppRoutes {
@@ -25,4 +27,22 @@ abstract final class AppRoutes {
   static const String ownerCreateCenter = 'owner-create-center';
   static const String ownerEnquiryInbox = 'owner-enquiry-inbox';
   static const String ownerEnquiryDetail = 'owner-enquiry-detail';
+
+  // Teacher
+  static const String teacherHome = 'teacher-home';
+  static const String teacherSearch = 'teacher-search';
+  static const String teacherEnquiries = 'teacher-enquiries';
+  static const String teacherSchedule = 'teacher-schedule';
+  static const String teacherProfile = 'teacher-profile';
+}
+
+/// The shell-home route NAME a freshly-authenticated [role] should land on.
+///
+/// Single source of truth shared by the login and register flows so the two
+/// stay in sync. The router's own redirect guard maps the same roles to their
+/// path equivalents.
+String landingRouteForRole(String role) {
+  if (role == roleOwner) return AppRoutes.ownerDashboard;
+  if (role == roleTeacher) return AppRoutes.teacherHome;
+  return AppRoutes.studentHome; // student (default)
 }

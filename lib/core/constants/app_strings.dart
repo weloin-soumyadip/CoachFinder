@@ -18,6 +18,9 @@ abstract final class AppStrings {
   static const String roleOwnerTitle = 'I am a Coaching Owner';
   static const String roleOwnerBlurb =
       'Manage your roster, streamline scheduling, and grow your coaching business with powerful management tools.';
+  static const String roleTeacherTitle = 'I am a teacher';
+  static const String roleTeacherBlurb =
+      'Share your expertise on your own terms - tutor independently or join an organization, set your availability, and connect with the students who need you.';
   static const String onboardingContinue = 'Continue';
 
   // Auth - shared
@@ -29,12 +32,15 @@ abstract final class AppStrings {
 
   // Auth - login screen
   static const String loginTitle = 'Welcome back';
-  static const String loginSubtitle = 'Sign in to continue your journey of growth.';
+  static const String loginSubtitle =
+      'Sign in to continue your journey of growth.';
   static const String forgotPassword = 'Forgot Password?';
   static const String logInButton = 'Log In';
   static const String orContinueWith = 'or continue with';
   static const String dontHaveAccount = "Don't have an account?";
   static const String signUp = 'Sign Up';
+  static const String loginInvalidCredentials = 'Invalid email or password.';
+  static const String loginTestAccountLabel = 'Debug test account';
 
   // Auth - register screen
   static const String registerTitle = 'Create Account';
@@ -67,6 +73,54 @@ abstract final class AppStrings {
   static const String homeViewInsights = 'View Insights';
   static const String homePerHourSuffix = '/hr';
 
+  // Student search screen
+  static const String searchHint = 'Search teachers & institutes...';
+  static const String searchSegmentAll = 'All';
+  static const String searchSegmentTeachers = 'Teachers';
+  static const String searchSegmentInstitutes = 'Institutes';
+  static const String searchBrowseByCategory = 'Browse by category';
+  static const String searchRecentSearches = 'Recent searches';
+  static const String searchFilters = 'Filters';
+  static const String searchFoundPrefix = 'Found';
+  static const String searchResultsWord = 'results';
+  static const String searchTeachersWord = 'teachers';
+  static const String searchInstitutesWord = 'institutes';
+  static const String searchPerSessionSuffix = '/session';
+  static const String searchCoursesSuffix = 'courses';
+  static const String searchNoResultsTitle = 'No matches found';
+  static const String searchNoResultsSubtitle =
+      'Try a different search term or category.';
+
+  // Student saved screen
+  static const String savedTitle = 'Saved';
+  static const String savedSearchHint = 'Search saved tutors & coachings...';
+  static const String savedFilterAll = 'All';
+  static const String savedFilterCoachings = 'Coachings';
+  static const String savedFilterTutors = 'Tutors';
+  static const String savedCountWord = 'saved';
+  static const String savedRemoveTooltip = 'Remove from saved';
+  static const String savedEmptyTitle = 'Nothing saved yet';
+  static const String savedEmptySubtitle =
+      'Bookmark tutors and coachings to find them here.';
+
+  // Student profile screen
+  static const String profileTitle = 'Profile';
+  static const String profileEditButton = 'Edit Profile';
+  static const String profileAppearance = 'Appearance';
+  static const String profileThemeSystem = 'System';
+  static const String profileThemeLight = 'Light';
+  static const String profileThemeDark = 'Dark';
+  static const String profileSettings = 'Settings';
+  static const String profileNotifications = 'Notifications';
+  static const String profilePaymentMethods = 'Payment Methods';
+  static const String profileHelpSupport = 'Help & Support';
+  static const String profileAbout = 'About';
+  static const String profileSignOut = 'Sign Out';
+  static const String profileSignOutConfirmTitle = 'Sign out?';
+  static const String profileSignOutConfirmBody =
+      "You'll need to sign in again to access your account.";
+  static const String profileSignOutCancel = 'Cancel';
+
   // Phase 1 stub messages
   static const String stubAuthNotImplemented =
       'Phase 1: auth backend not implemented yet.';
@@ -80,6 +134,7 @@ abstract final class AppStrings {
       'Phase 1: terms / privacy pages not implemented yet.';
   static const String stubTermsRequired =
       'Please accept the Terms of Service and Privacy Policy to continue.';
+  static const String stubComingSoon = 'Coming soon.';
 
   // Bottom-nav labels
   static const String navHome = 'Home';
@@ -89,6 +144,10 @@ abstract final class AppStrings {
   static const String navDashboard = 'Dashboard';
   static const String navCenter = 'Center';
   static const String navEnquiries = 'Enquiries';
+  static const String navSchedule = 'Schedule';
+
+  // Teacher placeholder screens (Phase 1 - real UIs land per design later)
+  static const String teacherComingSoon = 'Coming soon';
 
   // Generic errors
   static const String errorNetwork =

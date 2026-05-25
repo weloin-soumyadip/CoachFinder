@@ -12,13 +12,14 @@ import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/hive_service_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 
 /// Onboarding screen.
 ///
-/// User picks Student or Coaching Owner, then taps Continue. Selection state is
-/// kept locally until Continue: that tap persists the role to Hive, updates
-/// [roleProvider], and navigates to the login screen.
+/// User picks Student, Coaching Owner, or Teacher, then taps Continue.
+/// Selection state is kept locally until Continue: that tap persists the role
+/// to Hive, updates [roleProvider], and navigates to the login screen.
 class OnboardingScreen extends HookConsumerWidget {
   const OnboardingScreen({super.key});
 
@@ -38,60 +39,83 @@ class OnboardingScreen extends HookConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.neutralGrey50,
+      backgroundColor: context.palette.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const SizedBox(height: AppSpacing.sp8),
-              _TopBar(),
-              const SizedBox(height: AppSpacing.sp24),
-              Text(
-                AppStrings.onboardingTitle,
-                textAlign: TextAlign.center,
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.neutralBlack,
+        // Scroll-safe layout: the Continue button stays pinned to the bottom
+        // when there is room, and the whole column scrolls on short screens
+        // (three role cards can exceed the viewport on small phones).
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const SizedBox(height: AppSpacing.sp8),
+                      _TopBar(),
+                      const SizedBox(height: AppSpacing.sp24),
+                      Text(
+                        AppStrings.onboardingTitle,
+                        textAlign: TextAlign.center,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: context.palette.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp12),
+                      Text(
+                        AppStrings.onboardingSubtitle,
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: context.palette.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      _RoleCard(
+                        title: AppStrings.roleStudentTitle,
+                        blurb: AppStrings.roleStudentBlurb,
+                        icon: Icons.school,
+                        iconColor: context.palette.primary,
+                        iconBackground: context.palette.primaryTint,
+                        selected: selectedRole.value == roleStudent,
+                        onTap: () => selectedRole.value = roleStudent,
+                      ),
+                      const SizedBox(height: AppSpacing.sp16),
+                      _RoleCard(
+                        title: AppStrings.roleOwnerTitle,
+                        blurb: AppStrings.roleOwnerBlurb,
+                        icon: Icons.storefront,
+                        iconColor: context.palette.textSecondary,
+                        iconBackground: context.palette.border,
+                        selected: selectedRole.value == roleOwner,
+                        onTap: () => selectedRole.value = roleOwner,
+                      ),
+                      const SizedBox(height: AppSpacing.sp16),
+                      _RoleCard(
+                        title: AppStrings.roleTeacherTitle,
+                        blurb: AppStrings.roleTeacherBlurb,
+                        icon: Icons.cast_for_education,
+                        iconColor: AppColors.teacherAccent,
+                        iconBackground: AppColors.teacherAccentTint,
+                        selected: selectedRole.value == roleTeacher,
+                        onTap: () => selectedRole.value = roleTeacher,
+                      ),
+                      const Spacer(),
+                      const SizedBox(height: AppSpacing.sp24),
+                      _ContinueButton(
+                        enabled: selectedRole.value != null,
+                        onPressed: handleContinue,
+                      ),
+                      const SizedBox(height: AppSpacing.sp16),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sp12),
-              Text(
-                AppStrings.onboardingSubtitle,
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.neutralGrey500,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sp24),
-              _RoleCard(
-                title: AppStrings.roleStudentTitle,
-                blurb: AppStrings.roleStudentBlurb,
-                icon: Icons.school,
-                iconColor: AppColors.studentPrimary,
-                iconBackground: AppColors.studentPrimaryTint,
-                selected: selectedRole.value == roleStudent,
-                onTap: () => selectedRole.value = roleStudent,
-              ),
-              const SizedBox(height: AppSpacing.sp16),
-              _RoleCard(
-                title: AppStrings.roleOwnerTitle,
-                blurb: AppStrings.roleOwnerBlurb,
-                icon: Icons.storefront,
-                iconColor: AppColors.neutralGrey700,
-                iconBackground: AppColors.neutralGrey200,
-                selected: selectedRole.value == roleOwner,
-                onTap: () => selectedRole.value = roleOwner,
-              ),
-              const Spacer(),
-              _ContinueButton(
-                enabled: selectedRole.value != null,
-                onPressed: handleContinue,
-              ),
-              const SizedBox(height: AppSpacing.sp16),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -109,7 +133,7 @@ class _TopBar extends StatelessWidget {
         Text(
           AppStrings.appName,
           style: textTheme.titleLarge?.copyWith(
-            color: AppColors.studentPrimary,
+            color: context.palette.primary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -142,10 +166,10 @@ class _RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final borderColor =
-        selected ? AppColors.studentPrimary : AppColors.neutralGrey200;
+    final palette = context.palette;
+    final borderColor = selected ? palette.primary : palette.border;
     return Material(
-      color: AppColors.neutralWhite,
+      color: palette.surface,
       borderRadius: BorderRadius.circular(AppSpacing.sp16),
       child: InkWell(
         onTap: onTap,
@@ -175,7 +199,7 @@ class _RoleCard extends StatelessWidget {
                 title,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.neutralBlack,
+                  color: palette.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.sp8),
@@ -183,7 +207,7 @@ class _RoleCard extends StatelessWidget {
                 blurb,
                 textAlign: TextAlign.center,
                 style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.neutralGrey500,
+                  color: palette.textMuted,
                   height: 1.5,
                 ),
               ),
@@ -205,17 +229,16 @@ class _ContinueButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
         onPressed: enabled ? onPressed : null,
         style: FilledButton.styleFrom(
-          backgroundColor: enabled
-              ? AppColors.studentPrimary
-              : AppColors.neutralGrey200,
-          disabledBackgroundColor: AppColors.neutralGrey200,
+          backgroundColor: enabled ? AppColors.studentPrimary : palette.border,
+          disabledBackgroundColor: palette.border,
           foregroundColor: AppColors.neutralWhite,
-          disabledForegroundColor: AppColors.neutralGrey500,
+          disabledForegroundColor: palette.textMuted,
           minimumSize: const Size.fromHeight(56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.sp16),

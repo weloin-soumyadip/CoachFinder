@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../data/mock_home_data.dart';
 
@@ -19,8 +20,9 @@ class FeaturedCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Material(
-      color: AppColors.neutralWhite,
+      color: palette.surface,
       borderRadius: BorderRadius.circular(AppSpacing.sp16),
       child: InkWell(
         onTap: onTap,
@@ -28,9 +30,9 @@ class FeaturedCardWidget extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.sp12),
           decoration: BoxDecoration(
-            color: AppColors.neutralWhite,
+            color: palette.surface,
             borderRadius: BorderRadius.circular(AppSpacing.sp16),
-            border: Border.all(color: AppColors.neutralGrey100),
+            border: Border.all(color: palette.borderSubtle),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -46,14 +48,14 @@ class FeaturedCardWidget extends StatelessWidget {
                       coach.name,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.neutralBlack,
+                        color: palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       coach.role,
                       style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.neutralGrey500,
+                        color: palette.textMuted,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sp8),
@@ -75,13 +77,14 @@ class FeaturedCardWidget extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      const Icon(Icons.star, color: AppColors.ratingStar, size: 14),
+                      const Icon(Icons.star,
+                          color: AppColors.ratingStar, size: 14),
                       const SizedBox(width: 2),
                       Text(
                         coach.rating.toStringAsFixed(1),
                         style: textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.neutralBlack,
+                          color: palette.textPrimary,
                         ),
                       ),
                     ],
@@ -150,7 +153,7 @@ class _TagPill extends StatelessWidget {
       child: Text(
         tag.label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.neutralBlack,
+              color: context.palette.textPrimary,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
             ),

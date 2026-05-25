@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../data/mock_home_data.dart';
 import '../widgets/category_chip_widget.dart';
@@ -22,7 +23,7 @@ class HomeScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.neutralGrey50,
+      backgroundColor: context.palette.background,
       body: SafeArea(
         bottom: false,
         child: Stack(
@@ -50,7 +51,7 @@ class HomeScreen extends HookConsumerWidget {
                       child: Text(
                         AppStrings.homeSeeAll,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: AppColors.studentPrimary,
+                              color: context.palette.primary,
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -61,9 +62,9 @@ class HomeScreen extends HookConsumerWidget {
                   const SizedBox(height: AppSpacing.sp24),
                   _SectionHeader(
                     title: AppStrings.homeRecommendedForYou,
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.tune,
-                      color: AppColors.neutralGrey700,
+                      color: context.palette.textSecondary,
                       size: 20,
                     ),
                   ),
@@ -108,6 +109,7 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sp8,
@@ -115,14 +117,14 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.menu, color: AppColors.studentPrimary),
-            onPressed: () {},
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.menu, color: AppColors.studentPrimary),
+          //   onPressed: () {},
+          // ),
           Text(
             AppStrings.appName,
             style: textTheme.titleLarge?.copyWith(
-              color: AppColors.studentPrimary,
+              color: palette.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -131,11 +133,11 @@ class _TopBar extends StatelessWidget {
             padding: const EdgeInsets.only(right: AppSpacing.sp8),
             child: CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.studentPrimaryTint,
+              backgroundColor: palette.primaryTint,
               child: Text(
                 mockUser.firstName[0],
                 style: textTheme.labelLarge?.copyWith(
-                  color: AppColors.studentPrimary,
+                  color: palette.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -153,6 +155,7 @@ class _Greeting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp16),
       child: Column(
@@ -162,14 +165,14 @@ class _Greeting extends StatelessWidget {
             '${AppStrings.homeGreetingPrefix}${mockUser.firstName}${AppStrings.homeGreetingSuffix}',
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.neutralBlack,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             AppStrings.homeSubtitle,
             style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.neutralGrey500,
+              color: palette.textMuted,
             ),
           ),
         ],
@@ -294,7 +297,7 @@ class _SectionHeader extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.neutralBlack,
+                  color: context.palette.textPrimary,
                 ),
           ),
           const Spacer(),
@@ -355,12 +358,13 @@ class _PersonalizedPathCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sp16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: AppColors.neutralGrey100),
+        border: Border.all(color: palette.borderSubtle),
       ),
       child: Row(
         children: <Widget>[
@@ -371,7 +375,7 @@ class _PersonalizedPathCard extends StatelessWidget {
                 Text(
                   AppStrings.homeCurrentFocus,
                   style: textTheme.labelSmall?.copyWith(
-                    color: AppColors.neutralGrey500,
+                    color: palette.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -380,7 +384,7 @@ class _PersonalizedPathCard extends StatelessWidget {
                   path.title,
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.neutralBlack,
+                    color: palette.textPrimary,
                   ),
                 ),
               ],
@@ -400,6 +404,7 @@ class _ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return SizedBox(
       width: 56,
       height: 56,
@@ -409,7 +414,7 @@ class _ProgressRing extends StatelessWidget {
           CircularProgressIndicator(
             value: percent / 100,
             strokeWidth: 5,
-            backgroundColor: AppColors.neutralGrey100,
+            backgroundColor: palette.borderSubtle,
             valueColor:
                 const AlwaysStoppedAnimation<Color>(AppColors.priceGreen),
           ),
@@ -417,7 +422,7 @@ class _ProgressRing extends StatelessWidget {
             '$percent%',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.neutralBlack,
+                  color: palette.textPrimary,
                 ),
           ),
         ],
@@ -431,23 +436,24 @@ class _ActionTilesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Row(
-      children: const <Widget>[
+      children: <Widget>[
         Expanded(
           child: _ActionTile(
             label: AppStrings.homeTrackProgress,
             icon: Icons.bar_chart_rounded,
-            background: AppColors.neutralGrey100,
-            iconColor: AppColors.neutralGrey700,
+            background: palette.borderSubtle,
+            iconColor: palette.textSecondary,
           ),
         ),
-        SizedBox(width: AppSpacing.sp12),
+        const SizedBox(width: AppSpacing.sp12),
         Expanded(
           child: _ActionTile(
             label: AppStrings.homeViewInsights,
             icon: Icons.auto_awesome,
-            background: AppColors.studentPrimaryTint,
-            iconColor: AppColors.studentPrimary,
+            background: palette.primaryTint,
+            iconColor: palette.primary,
           ),
         ),
       ],
@@ -486,7 +492,7 @@ class _ActionTile extends StatelessWidget {
             label,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.neutralBlack,
+                  color: context.palette.textPrimary,
                 ),
           ),
         ],

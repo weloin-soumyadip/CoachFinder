@@ -1,6 +1,7 @@
 /// Register screen consuming authProvider - sends the chosen role to the backend.
 library;
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -12,7 +13,7 @@ import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/hive_service_provider.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../widgets/auth_field_widget.dart';
 import '../widgets/auth_widgets.dart';
@@ -38,6 +39,7 @@ class RegisterScreen extends HookConsumerWidget {
     final confirmVisible = useState(false);
     final termsAccepted = useState(false);
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
 
     void stub(String message) {
       ScaffoldMessenger.of(context)
@@ -53,19 +55,21 @@ class RegisterScreen extends HookConsumerWidget {
         stub(AppStrings.stubTermsRequired);
         return;
       }
+      // Debug-only dev shortcut; real registration isn't built yet. In release
+      // builds this is inert so no backdoor ships.
+      if (!kDebugMode) {
+        stub(AppStrings.stubAuthNotImplemented);
+        return;
+      }
       final hive = ref.read(hiveServiceProvider);
       await hive.authBox.put(HiveKeys.keyJwtToken, 'phase1-dev-token');
       final role = ref.read(roleProvider) ?? initialRole ?? roleStudent;
       if (!context.mounted) return;
-      context.goNamed(
-        role == roleStudent
-            ? AppRoutes.studentHome
-            : AppRoutes.ownerDashboard,
-      );
+      context.goNamed(landingRouteForRole(role));
     }
 
     return Scaffold(
-      backgroundColor: AppColors.neutralGrey50,
+      backgroundColor: palette.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp24),
@@ -91,7 +95,7 @@ class RegisterScreen extends HookConsumerWidget {
                         AppStrings.registerTitle,
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.neutralBlack,
+                          color: palette.textPrimary,
                         ),
                       ),
                     ),
@@ -101,7 +105,7 @@ class RegisterScreen extends HookConsumerWidget {
                         AppStrings.registerSubtitle,
                         textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.neutralGrey500,
+                          color: palette.textMuted,
                         ),
                       ),
                     ),
@@ -154,7 +158,7 @@ class RegisterScreen extends HookConsumerWidget {
                           passwordVisible.value
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColors.neutralGrey500,
+                          color: palette.textMuted,
                           size: 20,
                         ),
                         onPressed: () =>
@@ -172,7 +176,7 @@ class RegisterScreen extends HookConsumerWidget {
                           confirmVisible.value
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: AppColors.neutralGrey500,
+                          color: palette.textMuted,
                           size: 20,
                         ),
                         onPressed: () =>
@@ -219,11 +223,12 @@ class _RegisterTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Row(
       children: <Widget>[
         IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: AppColors.studentPrimary,
+          color: palette.primary,
           onPressed: onBack,
           padding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
@@ -232,7 +237,7 @@ class _RegisterTopBar extends StatelessWidget {
         Text(
           AppStrings.appName,
           style: textTheme.titleLarge?.copyWith(
-            color: AppColors.studentPrimary,
+            color: palette.primary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -258,12 +263,13 @@ class _TermsCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     final bodyStyle = textTheme.bodySmall?.copyWith(
-      color: AppColors.neutralGrey700,
+      color: palette.textSecondary,
       height: 1.4,
     );
     final linkStyle = bodyStyle?.copyWith(
-      color: AppColors.studentPrimary,
+      color: palette.primary,
       fontWeight: FontWeight.w600,
     );
 
@@ -309,4 +315,3 @@ class _TermsCheckbox extends StatelessWidget {
     );
   }
 }
-

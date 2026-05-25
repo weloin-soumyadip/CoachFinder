@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 
 /// Branding badge - blue rounded square with the school icon. Sits at the top
@@ -42,7 +43,7 @@ class AuthCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sp24),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(AppSpacing.sp24),
       ),
       child: child,
@@ -116,11 +117,12 @@ class AuthOAuthButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.neutralGrey900,
-        side: const BorderSide(color: AppColors.neutralGrey200),
+        foregroundColor: palette.textPrimary,
+        side: BorderSide(color: palette.border),
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.sp12),
@@ -130,12 +132,12 @@ class AuthOAuthButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Icon(icon, size: 20, color: AppColors.neutralGrey900),
+          Icon(icon, size: 20, color: palette.textPrimary),
           const SizedBox(width: AppSpacing.sp8),
           Text(
             label,
             style: textTheme.labelLarge?.copyWith(
-              color: AppColors.neutralGrey900,
+              color: palette.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -154,20 +156,21 @@ class AuthOrDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Row(
       children: <Widget>[
-        const Expanded(child: Divider(color: AppColors.neutralGrey200)),
+        Expanded(child: Divider(color: palette.border)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp12),
           child: Text(
             text,
             style: textTheme.labelSmall?.copyWith(
-              color: AppColors.neutralGrey500,
+              color: palette.textMuted,
               letterSpacing: 1,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: AppColors.neutralGrey200)),
+        Expanded(child: Divider(color: palette.border)),
       ],
     );
   }
@@ -189,13 +192,13 @@ class AuthBottomLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         Text(
           prefix,
-          style: textTheme.bodyMedium
-              ?.copyWith(color: AppColors.neutralGrey700),
+          style: textTheme.bodyMedium?.copyWith(color: palette.textSecondary),
         ),
         const SizedBox(width: AppSpacing.sp4),
         GestureDetector(
@@ -203,7 +206,7 @@ class AuthBottomLink extends StatelessWidget {
           child: Text(
             actionLabel,
             style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.studentPrimary,
+              color: palette.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
