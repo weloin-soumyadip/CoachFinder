@@ -55,8 +55,10 @@ class NeoButton extends HookWidget {
   /// Sticky settled (selected) state for toggle-like tiles.
   final bool selected;
 
-  /// Tap-target height. Default 52 (matches existing auth buttons).
-  final double height;
+  /// Tap-target height. Default 52 (matches existing auth buttons). Pass
+  /// `null` to let the button size to its content (used by role tiles whose
+  /// blurb can wrap to a third line on narrow viewports).
+  final double? height;
 
   /// Corner radius. Default [AppSpacing.sp12].
   final double radius;

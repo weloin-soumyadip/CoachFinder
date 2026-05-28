@@ -293,9 +293,12 @@ class _RoleTile extends StatelessWidget {
       selected: selected,
       accent: data.accent,
       filled: false,
-      height: 88,
+      height: null,
       radius: AppSpacing.sp16,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sp16,
+        vertical: AppSpacing.sp16,
+      ),
       child: Row(
         children: <Widget>[
           Container(
