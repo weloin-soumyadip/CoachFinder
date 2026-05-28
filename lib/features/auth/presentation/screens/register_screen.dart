@@ -1,8 +1,7 @@
-/// Register screen consuming authProvider - sends the chosen role to the backend.
+/// Sign Up screen consuming authProvider — sends the chosen role to the backend.
 library;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -13,17 +12,22 @@ import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/hive_service_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/brand_backdrop.dart';
+import '../../../../shared/widgets/glass_panel.dart';
+import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
 import '../widgets/auth_widgets.dart';
 
-/// Register screen.
+/// Sign Up screen.
 ///
-/// Phase 1 placeholder. The form is interactive (typing, password visibility,
-/// terms checkbox). The submit button surfaces a SnackBar stub until the
-/// backend register contract lands; the role from [initialRole] will be
-/// included in that POST when wired.
+/// The form validates on submit (required names, email format, 8-char password,
+/// matching confirmation). Phase 1: on a valid submit a debug-only shortcut
+/// writes a placeholder JWT and lands on the role-appropriate shell; release
+/// builds show the not-implemented stub. The chosen [initialRole] will be
+/// included in the register POST once the backend lands.
 class RegisterScreen extends HookConsumerWidget {
   const RegisterScreen({super.key, this.initialRole});
 
@@ -31,15 +35,16 @@ class RegisterScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nameCtrl = useTextEditingController();
+    final firstNameCtrl = useTextEditingController();
+    final lastNameCtrl = useTextEditingController();
     final emailCtrl = useTextEditingController();
     final passwordCtrl = useTextEditingController();
     final confirmCtrl = useTextEditingController();
     final passwordVisible = useState(false);
     final confirmVisible = useState(false);
-    final termsAccepted = useState(false);
-    final textTheme = Theme.of(context).textTheme;
+    final formKey = useMemoized(GlobalKey<FormState>.new);
     final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
 
     void stub(String message) {
       ScaffoldMessenger.of(context)
@@ -47,16 +52,8 @@ class RegisterScreen extends HookConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(message)));
     }
 
-    // TODO(real-auth): replace with the real register flow once the backend
-    // contract lands. Phase 1 dev shortcut: write a placeholder JWT and
-    // navigate into the role-appropriate shell.
     Future<void> onCreateAccount() async {
-      if (!termsAccepted.value) {
-        stub(AppStrings.stubTermsRequired);
-        return;
-      }
-      // Debug-only dev shortcut; real registration isn't built yet. In release
-      // builds this is inert so no backdoor ships.
+      if (!(formKey.currentState?.validate() ?? false)) return;
       if (!kDebugMode) {
         stub(AppStrings.stubAuthNotImplemented);
         return;
@@ -70,248 +67,176 @@ class RegisterScreen extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const SizedBox(height: AppSpacing.sp8),
-              _RegisterTopBar(
-                onBack: () => context.canPop()
-                    ? context.pop()
-                    : context.goNamed(
-                        AppRoutes.login,
-                        extra: initialRole,
-                      ),
-              ),
-              const SizedBox(height: AppSpacing.sp16),
-              AuthCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Center(
-                      child: Text(
+      body: BrandBackdrop(
+        orbColors: const <Color>[
+          AppColors.studentPrimary,
+          AppColors.studentPrimaryDark,
+        ],
+        child: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sp24,
+                  AppSpacing.sp32,
+                  AppSpacing.sp24,
+                  AppSpacing.sp32,
+                ),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text(
                         AppStrings.registerTitle,
                         style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: palette.textPrimary,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp4),
-                    Center(
-                      child: Text(
+                      const SizedBox(height: AppSpacing.sp8),
+                      Text(
                         AppStrings.registerSubtitle,
-                        textAlign: TextAlign.center,
                         style: textTheme.bodyMedium?.copyWith(
                           color: palette.textMuted,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: AuthOAuthButton(
-                            label: AppStrings.google,
-                            icon: Icons.g_mobiledata,
-                            onPressed: () => stub(AppStrings.stubGoogleSignIn),
-                          ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      GlassPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  child: AuthFieldWidget(
+                                    label: AppStrings.fieldFirstName,
+                                    hint: AppStrings.hintFirstName,
+                                    icon: Icons.person_outline,
+                                    controller: firstNameCtrl,
+                                    keyboardType: TextInputType.name,
+                                    textInputAction: TextInputAction.next,
+                                    validator: AuthValidators.notEmpty,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sp12),
+                                Expanded(
+                                  child: AuthFieldWidget(
+                                    label: AppStrings.fieldLastName,
+                                    hint: AppStrings.hintLastName,
+                                    icon: Icons.person_outline,
+                                    controller: lastNameCtrl,
+                                    keyboardType: TextInputType.name,
+                                    textInputAction: TextInputAction.next,
+                                    validator: AuthValidators.notEmpty,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.sp16),
+                            AuthFieldWidget(
+                              label: AppStrings.fieldEmail,
+                              hint: AppStrings.hintEmail,
+                              icon: Icons.mail_outline,
+                              controller: emailCtrl,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              validator: AuthValidators.email,
+                            ),
+                            const SizedBox(height: AppSpacing.sp16),
+                            AuthFieldWidget(
+                              label: AppStrings.fieldPassword,
+                              icon: Icons.lock_outline,
+                              controller: passwordCtrl,
+                              obscureText: !passwordVisible.value,
+                              textInputAction: TextInputAction.next,
+                              validator: AuthValidators.password,
+                              trailing: IconButton(
+                                icon: Icon(
+                                  passwordVisible.value
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: palette.textMuted,
+                                  size: 20,
+                                ),
+                                onPressed: () => passwordVisible.value =
+                                    !passwordVisible.value,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sp16),
+                            AuthFieldWidget(
+                              label: AppStrings.fieldConfirmPassword,
+                              icon: Icons.shield_outlined,
+                              controller: confirmCtrl,
+                              obscureText: !confirmVisible.value,
+                              textInputAction: TextInputAction.done,
+                              validator: (String? v) =>
+                                  AuthValidators.confirmPassword(
+                                v,
+                                passwordCtrl.text,
+                              ),
+                              trailing: IconButton(
+                                icon: Icon(
+                                  confirmVisible.value
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: palette.textMuted,
+                                  size: 20,
+                                ),
+                                onPressed: () => confirmVisible.value =
+                                    !confirmVisible.value,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sp24),
+                            AuthPrimaryButton(
+                              label: AppStrings.signUp,
+                              onPressed: onCreateAccount,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: AppSpacing.sp12),
-                        Expanded(
-                          child: AuthOAuthButton(
-                            label: AppStrings.apple,
-                            icon: Icons.apple,
-                            onPressed: () => stub(AppStrings.stubAppleSignIn),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    const AuthOrDivider(text: AppStrings.orEmail),
-                    const SizedBox(height: AppSpacing.sp16),
-                    AuthFieldWidget(
-                      label: AppStrings.fieldFullName,
-                      hint: AppStrings.hintFullName,
-                      icon: Icons.person_outline,
-                      controller: nameCtrl,
-                      keyboardType: TextInputType.name,
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    AuthFieldWidget(
-                      label: AppStrings.fieldEmail,
-                      hint: AppStrings.hintEmail,
-                      icon: Icons.mail_outline,
-                      controller: emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    AuthFieldWidget(
-                      label: AppStrings.fieldPassword,
-                      icon: Icons.lock_outline,
-                      controller: passwordCtrl,
-                      obscureText: !passwordVisible.value,
-                      trailing: IconButton(
-                        icon: Icon(
-                          passwordVisible.value
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: palette.textMuted,
-                          size: 20,
-                        ),
-                        onPressed: () =>
-                            passwordVisible.value = !passwordVisible.value,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    AuthFieldWidget(
-                      label: AppStrings.fieldConfirmPassword,
-                      icon: Icons.shield_outlined,
-                      controller: confirmCtrl,
-                      obscureText: !confirmVisible.value,
-                      trailing: IconButton(
-                        icon: Icon(
-                          confirmVisible.value
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: palette.textMuted,
-                          size: 20,
+                      const SizedBox(height: AppSpacing.sp24),
+                      const AuthOrDivider(text: AppStrings.authOr),
+                      const SizedBox(height: AppSpacing.sp16),
+                      GlassPanel(
+                        padding: const EdgeInsets.all(AppSpacing.sp16),
+                        child: Column(
+                          children: <Widget>[
+                            AuthOAuthButton(
+                              label: AppStrings.socialGoogle,
+                              icon: Icons.g_mobiledata,
+                              onPressed: () =>
+                                  stub(AppStrings.stubGoogleSignIn),
+                            ),
+                            const SizedBox(height: AppSpacing.sp12),
+                            AuthOAuthButton(
+                              label: AppStrings.socialFacebook,
+                              icon: Icons.facebook,
+                              onPressed: () => stub(AppStrings.stubAppleSignIn),
+                            ),
+                          ],
                         ),
-                        onPressed: () =>
-                            confirmVisible.value = !confirmVisible.value,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    _TermsCheckbox(
-                      accepted: termsAccepted.value,
-                      onChanged: (v) => termsAccepted.value = v,
-                      onTapTerms: () => stub(AppStrings.stubTermsTap),
-                      onTapPrivacy: () => stub(AppStrings.stubTermsTap),
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    AuthPrimaryButton(
-                      label: AppStrings.createAccountButton,
-                      onPressed: onCreateAccount,
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.sp24),
+                      AuthBottomLink(
+                        prefix: AppStrings.alreadyHaveAccount,
+                        actionLabel: AppStrings.signIn,
+                        onAction: () => context.goNamed(
+                          AppRoutes.login,
+                          extra: initialRole,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sp16),
-              AuthBottomLink(
-                prefix: AppStrings.alreadyHaveAccount,
-                actionLabel: AppStrings.signIn,
-                onAction: () =>
-                    context.goNamed(AppRoutes.login, extra: initialRole),
-              ),
-              const SizedBox(height: AppSpacing.sp24),
-            ],
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Top bar for the register screen - back arrow + CoachFinder wordmark.
-class _RegisterTopBar extends StatelessWidget {
-  const _RegisterTopBar({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final palette = context.palette;
-    return Row(
-      children: <Widget>[
-        IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: palette.primary,
-          onPressed: onBack,
-          padding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
-        ),
-        const SizedBox(width: AppSpacing.sp4),
-        Text(
-          AppStrings.appName,
-          style: textTheme.titleLarge?.copyWith(
-            color: palette.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Terms-and-privacy checkbox row with inline links.
-class _TermsCheckbox extends StatelessWidget {
-  const _TermsCheckbox({
-    required this.accepted,
-    required this.onChanged,
-    required this.onTapTerms,
-    required this.onTapPrivacy,
-  });
-
-  final bool accepted;
-  final ValueChanged<bool> onChanged;
-  final VoidCallback onTapTerms;
-  final VoidCallback onTapPrivacy;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final palette = context.palette;
-    final bodyStyle = textTheme.bodySmall?.copyWith(
-      color: palette.textSecondary,
-      height: 1.4,
-    );
-    final linkStyle = bodyStyle?.copyWith(
-      color: palette.primary,
-      fontWeight: FontWeight.w600,
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: accepted,
-            onChanged: (v) => onChanged(v ?? false),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sp4),
-            ),
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sp12),
-        Expanded(
-          child: Text.rich(
-            TextSpan(
-              style: bodyStyle,
-              children: <InlineSpan>[
-                const TextSpan(text: AppStrings.termsPrefix),
-                TextSpan(
-                  text: AppStrings.termsOfService,
-                  style: linkStyle,
-                  recognizer: TapGestureRecognizer()..onTap = onTapTerms,
-                ),
-                const TextSpan(text: AppStrings.termsAnd),
-                TextSpan(
-                  text: AppStrings.privacyPolicy,
-                  style: linkStyle,
-                  recognizer: TapGestureRecognizer()..onTap = onTapPrivacy,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
