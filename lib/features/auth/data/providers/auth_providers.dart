@@ -7,6 +7,7 @@ import '../../../../core/api/api_client.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../models/login_request_model.dart';
 import '../models/register_request_model.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
@@ -107,6 +108,36 @@ class AuthController extends StateNotifier<AuthState> {
         password: password,
       );
       final response = await _repository.register(request);
+      await LocalStorage.set(StorageKeys.userRole, role);
+      await LocalStorage.set(StorageKeys.currentUserId, response.user.id);
+      _ref.read(roleProvider.notifier).state = role;
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: response.user,
+        role: role,
+      );
+    } on AuthException catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMessage: e.message);
+    }
+  }
+
+  /// Calls `POST /api/auth/login` via the repository, persists
+  /// `currentUserId` + `userRole` to [LocalStorage], updates [roleProvider],
+  /// and flips state through Loading → Authenticated. On failure flips to
+  /// Error with the backend's verbatim message.
+  Future<void> signIn({
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final request = LoginRequest(
+        userType: role,
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
+      final response = await _repository.login(request);
       await LocalStorage.set(StorageKeys.userRole, role);
       await LocalStorage.set(StorageKeys.currentUserId, response.user.id);
       _ref.read(roleProvider.notifier).state = role;
