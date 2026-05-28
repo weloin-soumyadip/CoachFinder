@@ -10,7 +10,10 @@ import '../../../../shared/widgets/neo_button.dart';
 
 /// Full-width filled primary CTA with an optional trailing icon, styled as a
 /// neo primary button on the brand fill. [accent] selects the fill color so
-/// the CTA inherits the active user role's brand; defaults to the student blue.
+/// the CTA inherits the active user role's brand; defaults to the student
+/// blue. When [isLoading] is `true`, [onPressed] is ignored, the label is
+/// replaced by a small white spinner, and the button greys out (because
+/// `NeoButton` already disables on `onPressed: null`).
 class AuthPrimaryButton extends StatelessWidget {
   const AuthPrimaryButton({
     super.key,
@@ -18,39 +21,50 @@ class AuthPrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.trailingIcon,
     this.accent,
+    this.isLoading = false,
   });
 
   final String label;
   final VoidCallback onPressed;
   final IconData? trailingIcon;
   final Color? accent;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return NeoButton(
-      onPressed: onPressed,
+      onPressed: isLoading ? null : onPressed,
       filled: true,
       accent: accent ?? AppColors.studentPrimary,
       height: 52,
       radius: AppSpacing.sp12,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            label,
-            style: textTheme.titleMedium?.copyWith(
-              color: AppColors.neutralWhite,
-              fontWeight: FontWeight.w700,
+      child: isLoading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.neutralWhite,
+              ),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  label,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.neutralWhite,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (trailingIcon != null) ...<Widget>[
+                  const SizedBox(width: AppSpacing.sp8),
+                  Icon(trailingIcon, size: 18, color: AppColors.neutralWhite),
+                ],
+              ],
             ),
-          ),
-          if (trailingIcon != null) ...<Widget>[
-            const SizedBox(width: AppSpacing.sp8),
-            Icon(trailingIcon, size: 18, color: AppColors.neutralWhite),
-          ],
-        ],
-      ),
     );
   }
 }
