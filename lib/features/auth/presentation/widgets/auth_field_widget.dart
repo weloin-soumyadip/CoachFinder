@@ -12,7 +12,8 @@ import '../../../../shared/widgets/neo_surface.dart';
 /// inside a [NeoSurface] with `inset: true` so it reads as pressed-into the
 /// page. Pass a [validator] (runs when the enclosing `Form` is validated); for
 /// password inputs pass `obscureText: true` and use [trailing] for the
-/// visibility-toggle button.
+/// visibility-toggle button. [accent] colors the floating label when the
+/// field is focused; defaults to `context.palette.primary`.
 class AuthFieldWidget extends StatelessWidget {
   const AuthFieldWidget({
     super.key,
@@ -25,6 +26,7 @@ class AuthFieldWidget extends StatelessWidget {
     this.textInputAction,
     this.trailing,
     this.validator,
+    this.accent,
   });
 
   final String label;
@@ -36,6 +38,7 @@ class AuthFieldWidget extends StatelessWidget {
   final TextInputAction? textInputAction;
   final Widget? trailing;
   final String? Function(String?)? validator;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +62,7 @@ class AuthFieldWidget extends StatelessWidget {
           icon: icon,
           hint: hint,
           suffix: trailing,
+          accent: accent,
         ),
       ),
     );

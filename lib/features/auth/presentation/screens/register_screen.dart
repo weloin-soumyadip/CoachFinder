@@ -12,11 +12,11 @@ import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/hive_service_provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/brand_backdrop.dart';
 import '../../../../shared/widgets/glass_panel.dart';
+import '../auth_role_accents.dart';
 import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
 import '../widgets/auth_widgets.dart';
@@ -27,7 +27,8 @@ import '../widgets/auth_widgets.dart';
 /// matching confirmation). Phase 1: on a valid submit a debug-only shortcut
 /// writes a placeholder JWT and lands on the role-appropriate shell; release
 /// builds show the not-implemented stub. The chosen [initialRole] will be
-/// included in the register POST once the backend lands.
+/// included in the register POST once the backend lands. The CTA, focused
+/// input ring, and footer link all adopt the active role's accent.
 class RegisterScreen extends HookConsumerWidget {
   const RegisterScreen({super.key, this.initialRole});
 
@@ -46,6 +47,10 @@ class RegisterScreen extends HookConsumerWidget {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
 
+    final String? role = ref.watch(roleProvider) ?? initialRole;
+    final Color accent = authAccent(role);
+    final List<Color> orbs = authBackdropOrbs(role);
+
     void stub(String message) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -60,18 +65,15 @@ class RegisterScreen extends HookConsumerWidget {
       }
       final hive = ref.read(hiveServiceProvider);
       await hive.authBox.put(HiveKeys.keyJwtToken, 'phase1-dev-token');
-      final role = ref.read(roleProvider) ?? initialRole ?? roleStudent;
+      final resolvedRole = ref.read(roleProvider) ?? initialRole ?? roleStudent;
       if (!context.mounted) return;
-      context.goNamed(landingRouteForRole(role));
+      context.goNamed(landingRouteForRole(resolvedRole));
     }
 
     return Scaffold(
       backgroundColor: palette.background,
       body: BrandBackdrop(
-        orbColors: const <Color>[
-          AppColors.studentPrimary,
-          AppColors.studentPrimaryDark,
-        ],
+        orbColors: orbs,
         child: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,
@@ -79,10 +81,10 @@ class RegisterScreen extends HookConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 480),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sp16,
                   AppSpacing.sp24,
-                  AppSpacing.sp32,
+                  AppSpacing.sp16,
                   AppSpacing.sp24,
-                  AppSpacing.sp32,
                 ),
                 child: Form(
                   key: formKey,
@@ -96,15 +98,16 @@ class RegisterScreen extends HookConsumerWidget {
                           color: palette.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp8),
+                      const SizedBox(height: AppSpacing.sp4),
                       Text(
                         AppStrings.registerSubtitle,
                         style: textTheme.bodyMedium?.copyWith(
                           color: palette.textMuted,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
+                      const SizedBox(height: AppSpacing.sp16),
                       GlassPanel(
+                        padding: const EdgeInsets.all(AppSpacing.sp16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -120,9 +123,10 @@ class RegisterScreen extends HookConsumerWidget {
                                     keyboardType: TextInputType.name,
                                     textInputAction: TextInputAction.next,
                                     validator: AuthValidators.notEmpty,
+                                    accent: accent,
                                   ),
                                 ),
-                                const SizedBox(width: AppSpacing.sp12),
+                                const SizedBox(width: AppSpacing.sp8),
                                 Expanded(
                                   child: AuthFieldWidget(
                                     label: AppStrings.fieldLastName,
@@ -132,11 +136,12 @@ class RegisterScreen extends HookConsumerWidget {
                                     keyboardType: TextInputType.name,
                                     textInputAction: TextInputAction.next,
                                     validator: AuthValidators.notEmpty,
+                                    accent: accent,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: AppSpacing.sp16),
+                            const SizedBox(height: AppSpacing.sp12),
                             AuthFieldWidget(
                               label: AppStrings.fieldEmail,
                               hint: AppStrings.hintEmail,
@@ -145,8 +150,9 @@ class RegisterScreen extends HookConsumerWidget {
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
                               validator: AuthValidators.email,
+                              accent: accent,
                             ),
-                            const SizedBox(height: AppSpacing.sp16),
+                            const SizedBox(height: AppSpacing.sp12),
                             AuthFieldWidget(
                               label: AppStrings.fieldPassword,
                               icon: Icons.lock_outline,
@@ -154,6 +160,7 @@ class RegisterScreen extends HookConsumerWidget {
                               obscureText: !passwordVisible.value,
                               textInputAction: TextInputAction.next,
                               validator: AuthValidators.password,
+                              accent: accent,
                               trailing: IconButton(
                                 icon: Icon(
                                   passwordVisible.value
@@ -166,7 +173,7 @@ class RegisterScreen extends HookConsumerWidget {
                                     !passwordVisible.value,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.sp16),
+                            const SizedBox(height: AppSpacing.sp12),
                             AuthFieldWidget(
                               label: AppStrings.fieldConfirmPassword,
                               icon: Icons.shield_outlined,
@@ -178,6 +185,7 @@ class RegisterScreen extends HookConsumerWidget {
                                 v,
                                 passwordCtrl.text,
                               ),
+                              accent: accent,
                               trailing: IconButton(
                                 icon: Icon(
                                   confirmVisible.value
@@ -190,19 +198,20 @@ class RegisterScreen extends HookConsumerWidget {
                                     !confirmVisible.value,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.sp24),
+                            const SizedBox(height: AppSpacing.sp16),
                             AuthPrimaryButton(
                               label: AppStrings.signUp,
+                              accent: accent,
                               onPressed: onCreateAccount,
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
-                      const AuthOrDivider(text: AppStrings.authOr),
                       const SizedBox(height: AppSpacing.sp16),
+                      const AuthOrDivider(text: AppStrings.authOr),
+                      const SizedBox(height: AppSpacing.sp12),
                       GlassPanel(
-                        padding: const EdgeInsets.all(AppSpacing.sp16),
+                        padding: const EdgeInsets.all(AppSpacing.sp12),
                         child: Column(
                           children: <Widget>[
                             AuthOAuthButton(
@@ -211,7 +220,7 @@ class RegisterScreen extends HookConsumerWidget {
                               onPressed: () =>
                                   stub(AppStrings.stubGoogleSignIn),
                             ),
-                            const SizedBox(height: AppSpacing.sp12),
+                            const SizedBox(height: AppSpacing.sp8),
                             AuthOAuthButton(
                               label: AppStrings.socialFacebook,
                               icon: Icons.facebook,
@@ -220,10 +229,11 @@ class RegisterScreen extends HookConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
+                      const SizedBox(height: AppSpacing.sp16),
                       AuthBottomLink(
                         prefix: AppStrings.alreadyHaveAccount,
                         actionLabel: AppStrings.signIn,
+                        accent: accent,
                         onAction: () => context.goNamed(
                           AppRoutes.login,
                           extra: initialRole,

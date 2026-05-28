@@ -9,18 +9,21 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/neo_button.dart';
 
 /// Full-width filled primary CTA with an optional trailing icon, styled as a
-/// neo primary button on the brand fill.
+/// neo primary button on the brand fill. [accent] selects the fill color so
+/// the CTA inherits the active user role's brand; defaults to the student blue.
 class AuthPrimaryButton extends StatelessWidget {
   const AuthPrimaryButton({
     super.key,
     required this.label,
     required this.onPressed,
     this.trailingIcon,
+    this.accent,
   });
 
   final String label;
   final VoidCallback onPressed;
   final IconData? trailingIcon;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +31,7 @@ class AuthPrimaryButton extends StatelessWidget {
     return NeoButton(
       onPressed: onPressed,
       filled: true,
-      accent: AppColors.studentPrimary,
+      accent: accent ?? AppColors.studentPrimary,
       height: 52,
       radius: AppSpacing.sp12,
       child: Row(
@@ -121,18 +124,22 @@ class AuthOrDivider extends StatelessWidget {
   }
 }
 
-/// Footer link — `prefix` text followed by a blue tappable `actionLabel`.
+/// Footer link — `prefix` text followed by a tappable `actionLabel`. [accent]
+/// colors the action label so it matches the active user role; defaults to
+/// `context.palette.primary`.
 class AuthBottomLink extends StatelessWidget {
   const AuthBottomLink({
     super.key,
     required this.prefix,
     required this.actionLabel,
     required this.onAction,
+    this.accent,
   });
 
   final String prefix;
   final String actionLabel;
   final VoidCallback onAction;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +158,7 @@ class AuthBottomLink extends StatelessWidget {
           child: Text(
             actionLabel,
             style: textTheme.bodyMedium?.copyWith(
-              color: palette.primary,
+              color: accent ?? palette.primary,
               fontWeight: FontWeight.w700,
             ),
           ),

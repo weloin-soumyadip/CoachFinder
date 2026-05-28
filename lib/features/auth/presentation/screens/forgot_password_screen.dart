@@ -7,12 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/brand_backdrop.dart';
 import '../../../../shared/widgets/glass_panel.dart';
+import '../auth_role_accents.dart';
 import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
 import '../widgets/auth_widgets.dart';
@@ -21,7 +22,8 @@ import '../widgets/auth_widgets.dart';
 ///
 /// Collects the account email and validates it on submit. Phase 1 shows a
 /// success SnackBar (no backend yet). The spec's stray "password" field is
-/// intentionally omitted — you don't enter a password to recover one.
+/// intentionally omitted — you don't enter a password to recover one. The
+/// CTA, focused input ring, and footer link adopt the active role's accent.
 class ForgotPasswordScreen extends HookConsumerWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -31,6 +33,10 @@ class ForgotPasswordScreen extends HookConsumerWidget {
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
+
+    final String? role = ref.watch(roleProvider);
+    final Color accent = authAccent(role);
+    final List<Color> orbs = authBackdropOrbs(role);
 
     void onRecover() {
       if (!(formKey.currentState?.validate() ?? false)) return;
@@ -44,10 +50,7 @@ class ForgotPasswordScreen extends HookConsumerWidget {
     return Scaffold(
       backgroundColor: palette.background,
       body: BrandBackdrop(
-        orbColors: const <Color>[
-          AppColors.studentPrimary,
-          AppColors.studentPrimaryDark,
-        ],
+        orbColors: orbs,
         child: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,
@@ -55,10 +58,10 @@ class ForgotPasswordScreen extends HookConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 480),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sp16,
                   AppSpacing.sp24,
-                  AppSpacing.sp32,
+                  AppSpacing.sp16,
                   AppSpacing.sp24,
-                  AppSpacing.sp32,
                 ),
                 child: Form(
                   key: formKey,
@@ -72,7 +75,7 @@ class ForgotPasswordScreen extends HookConsumerWidget {
                           color: palette.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp8),
+                      const SizedBox(height: AppSpacing.sp4),
                       Text(
                         AppStrings.forgotSubtitle,
                         style: textTheme.titleMedium?.copyWith(
@@ -87,8 +90,9 @@ class ForgotPasswordScreen extends HookConsumerWidget {
                           color: palette.textMuted,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
+                      const SizedBox(height: AppSpacing.sp16),
                       GlassPanel(
+                        padding: const EdgeInsets.all(AppSpacing.sp16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -100,19 +104,22 @@ class ForgotPasswordScreen extends HookConsumerWidget {
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.done,
                               validator: AuthValidators.email,
+                              accent: accent,
                             ),
-                            const SizedBox(height: AppSpacing.sp24),
+                            const SizedBox(height: AppSpacing.sp16),
                             AuthPrimaryButton(
                               label: AppStrings.recoverPasswordButton,
+                              accent: accent,
                               onPressed: onRecover,
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
+                      const SizedBox(height: AppSpacing.sp16),
                       AuthBottomLink(
                         prefix: AppStrings.forgotRememberPrefix,
                         actionLabel: AppStrings.signIn,
+                        accent: accent,
                         onAction: () => context.goNamed(AppRoutes.login),
                       ),
                     ],

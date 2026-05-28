@@ -12,21 +12,24 @@ import '../../core/theme/app_spacing.dart';
 ///
 /// Pass [label] for the floating M3 label, [icon] for the leading icon,
 /// [hint] for placeholder text, and [suffix] for the trailing visibility / clear
-/// button.
+/// button. [accent] colors the floating-label when the field is focused;
+/// defaults to `context.palette.primary`.
 InputDecoration neoInputDecoration({
   required BuildContext context,
   required String label,
   required IconData icon,
   String? hint,
   Widget? suffix,
+  Color? accent,
 }) {
   final TextTheme textTheme = Theme.of(context).textTheme;
   final palette = context.palette;
+  final Color brand = accent ?? palette.primary;
   return InputDecoration(
     labelText: label,
     labelStyle: textTheme.bodyLarge?.copyWith(color: palette.textMuted),
     floatingLabelStyle: textTheme.labelLarge?.copyWith(
-      color: palette.primary,
+      color: brand,
       fontWeight: FontWeight.w600,
     ),
     hintText: hint,

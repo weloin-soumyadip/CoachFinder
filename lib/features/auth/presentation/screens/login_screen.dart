@@ -13,11 +13,11 @@ import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/hive_service_provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/brand_backdrop.dart';
 import '../../../../shared/widgets/glass_panel.dart';
+import '../auth_role_accents.dart';
 import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
 import '../widgets/auth_widgets.dart';
@@ -28,8 +28,9 @@ import '../widgets/auth_widgets.dart';
 /// `kDebugMode` test credential ([DevCredentials]) signs in and lands on the
 /// role-appropriate shell; any other input shows an error, and release builds
 /// disable the bypass. [initialRole] arrives from onboarding via GoRouter
-/// `extra`. The "Remember for 30 days" toggle and social buttons are local /
-/// stubbed until the backend auth contract lands.
+/// `extra`. The CTA, focused input ring, footer link, and remember toggle all
+/// adopt the active role's accent so the form visibly belongs to the chosen
+/// experience.
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key, this.initialRole});
 
@@ -44,6 +45,10 @@ class LoginScreen extends HookConsumerWidget {
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
+
+    final String? role = ref.watch(roleProvider) ?? initialRole;
+    final Color accent = authAccent(role);
+    final List<Color> orbs = authBackdropOrbs(role);
 
     void stub(String message) {
       ScaffoldMessenger.of(context)
@@ -66,18 +71,15 @@ class LoginScreen extends HookConsumerWidget {
       }
       final hive = ref.read(hiveServiceProvider);
       await hive.authBox.put(HiveKeys.keyJwtToken, 'phase1-dev-token');
-      final role = ref.read(roleProvider) ?? initialRole ?? roleStudent;
+      final resolvedRole = ref.read(roleProvider) ?? initialRole ?? roleStudent;
       if (!context.mounted) return;
-      context.goNamed(landingRouteForRole(role));
+      context.goNamed(landingRouteForRole(resolvedRole));
     }
 
     return Scaffold(
       backgroundColor: palette.background,
       body: BrandBackdrop(
-        orbColors: const <Color>[
-          AppColors.studentPrimary,
-          AppColors.studentPrimaryDark,
-        ],
+        orbColors: orbs,
         child: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,
@@ -85,10 +87,10 @@ class LoginScreen extends HookConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 480),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sp16,
                   AppSpacing.sp24,
-                  AppSpacing.sp32,
+                  AppSpacing.sp16,
                   AppSpacing.sp24,
-                  AppSpacing.sp32,
                 ),
                 child: Form(
                   key: formKey,
@@ -102,15 +104,16 @@ class LoginScreen extends HookConsumerWidget {
                           color: palette.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp8),
+                      const SizedBox(height: AppSpacing.sp4),
                       Text(
                         AppStrings.loginSubtitle,
                         style: textTheme.bodyMedium?.copyWith(
                           color: palette.textMuted,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
+                      const SizedBox(height: AppSpacing.sp16),
                       GlassPanel(
+                        padding: const EdgeInsets.all(AppSpacing.sp16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -122,8 +125,9 @@ class LoginScreen extends HookConsumerWidget {
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
                               validator: AuthValidators.email,
+                              accent: accent,
                             ),
-                            const SizedBox(height: AppSpacing.sp16),
+                            const SizedBox(height: AppSpacing.sp12),
                             AuthFieldWidget(
                               label: AppStrings.fieldPassword,
                               icon: Icons.lock_outline,
@@ -131,6 +135,7 @@ class LoginScreen extends HookConsumerWidget {
                               obscureText: !passwordVisible.value,
                               textInputAction: TextInputAction.done,
                               validator: AuthValidators.password,
+                              accent: accent,
                               trailing: IconButton(
                                 icon: Icon(
                                   passwordVisible.value
@@ -143,12 +148,13 @@ class LoginScreen extends HookConsumerWidget {
                                     !passwordVisible.value,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.sp16),
+                            const SizedBox(height: AppSpacing.sp12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: <Widget>[
                                 _RememberToggle(
                                   value: rememberMe.value,
+                                  accent: accent,
                                   onChanged: (bool v) => rememberMe.value = v,
                                 ),
                                 GestureDetector(
@@ -157,30 +163,31 @@ class LoginScreen extends HookConsumerWidget {
                                   child: Text(
                                     AppStrings.forgotPassword,
                                     style: textTheme.labelLarge?.copyWith(
-                                      color: palette.primary,
+                                      color: accent,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: AppSpacing.sp24),
+                            const SizedBox(height: AppSpacing.sp16),
                             AuthPrimaryButton(
                               label: AppStrings.signIn,
+                              accent: accent,
                               onPressed: handleSignIn,
                             ),
                             if (kDebugMode) ...<Widget>[
-                              const SizedBox(height: AppSpacing.sp12),
+                              const SizedBox(height: AppSpacing.sp8),
                               const _DebugCredentialHint(),
                             ],
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
-                      const AuthOrDivider(text: AppStrings.authOr),
                       const SizedBox(height: AppSpacing.sp16),
+                      const AuthOrDivider(text: AppStrings.authOr),
+                      const SizedBox(height: AppSpacing.sp12),
                       GlassPanel(
-                        padding: const EdgeInsets.all(AppSpacing.sp16),
+                        padding: const EdgeInsets.all(AppSpacing.sp12),
                         child: Column(
                           children: <Widget>[
                             AuthOAuthButton(
@@ -189,7 +196,7 @@ class LoginScreen extends HookConsumerWidget {
                               onPressed: () =>
                                   stub(AppStrings.stubGoogleSignIn),
                             ),
-                            const SizedBox(height: AppSpacing.sp12),
+                            const SizedBox(height: AppSpacing.sp8),
                             AuthOAuthButton(
                               label: AppStrings.socialFacebook,
                               icon: Icons.facebook,
@@ -198,10 +205,11 @@ class LoginScreen extends HookConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp24),
+                      const SizedBox(height: AppSpacing.sp16),
                       AuthBottomLink(
                         prefix: AppStrings.dontHaveAccount,
                         actionLabel: AppStrings.signUp,
+                        accent: accent,
                         onAction: () => context.goNamed(
                           AppRoutes.register,
                           extra: initialRole,
@@ -219,12 +227,18 @@ class LoginScreen extends HookConsumerWidget {
   }
 }
 
-/// "Remember for 30 days" checkbox + label.
+/// "Remember for 30 days" checkbox + label. [accent] colors the checked state
+/// so the toggle matches the active role's brand.
 class _RememberToggle extends StatelessWidget {
-  const _RememberToggle({required this.value, required this.onChanged});
+  const _RememberToggle({
+    required this.value,
+    required this.onChanged,
+    required this.accent,
+  });
 
   final bool value;
   final ValueChanged<bool> onChanged;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +252,7 @@ class _RememberToggle extends StatelessWidget {
           child: Checkbox(
             value: value,
             onChanged: (bool? v) => onChanged(v ?? false),
-            activeColor: palette.primary,
+            activeColor: accent,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.sp4),
             ),
