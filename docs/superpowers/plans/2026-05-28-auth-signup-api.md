@@ -398,7 +398,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('AuthResponse.fromJson parses token / refreshToken / user', () {
     final response = AuthResponse.fromJson(<String, dynamic>{
-      'token': 'access.jwt.value',
+      'success': true,
+      'accessToken': 'access.jwt.value',
       'refreshToken': 'refresh.jwt.value',
       'user': <String, dynamic>{
         '_id': 'u1',
@@ -412,7 +413,7 @@ void main() {
         'updatedAt': '2026-05-28T10:00:00.000Z',
       },
     });
-    expect(response.token, 'access.jwt.value');
+    expect(response.accessToken, 'access.jwt.value');
     expect(response.refreshToken, 'refresh.jwt.value');
     expect(response.user.id, 'u1');
     expect(response.user.email, 'a@x.com');
@@ -436,19 +437,20 @@ library;
 
 import 'user_model.dart';
 
-/// The `{token, refreshToken, user}` envelope returned by
+/// The `{success, accessToken, refreshToken, user}` envelope returned by
 /// `POST /api/auth/register` and `POST /api/auth/login` (status 201 / 200).
-/// Parse-only: the client never serialises this back to the server.
+/// Parse-only: the client never serialises this back to the server. The
+/// `success` flag is informational — we read the tokens / user directly.
 class AuthResponse {
   const AuthResponse({
-    required this.token,
+    required this.accessToken,
     required this.refreshToken,
     required this.user,
   });
 
   /// Short-lived access JWT (default 15-min lifetime on the backend).
-  /// Sent on subsequent requests as `Authorization: Bearer <token>`.
-  final String token;
+  /// Sent on subsequent requests as `Authorization: Bearer <accessToken>`.
+  final String accessToken;
 
   /// Long-lived refresh JWT (default 7-day lifetime). Persisted for the
   /// mobile client; the same value is also set as an `HttpOnly` cookie for
@@ -461,7 +463,7 @@ class AuthResponse {
   /// Parses the backend response body.
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     return AuthResponse(
-      token: json['token'] as String,
+      accessToken: json['accessToken'] as String,
       refreshToken: json['refreshToken'] as String,
       user: User.fromJson(json['user'] as Map<String, dynamic>),
     );
@@ -861,14 +863,14 @@ import '../models/user_model.dart';
 /// to the local data source because it's the natural unit of persistence.
 class AuthSession {
   const AuthSession({
-    required this.token,
+    required this.accessToken,
     required this.refreshToken,
     required this.user,
     required this.role,
   });
 
   /// Access JWT (sent as `Authorization: Bearer ...`).
-  final String token;
+  final String accessToken;
 
   /// Refresh JWT (used by future `/auth/refresh` rotations).
   final String refreshToken;
@@ -904,7 +906,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> saveSession(AuthSession session) async {
-    await _hive.authBox.put(HiveKeys.keyJwtToken, session.token);
+    await _hive.authBox.put(HiveKeys.keyJwtToken, session.accessToken);
     await _hive.authBox.put(HiveKeys.keyRefreshToken, session.refreshToken);
     await _hive.authBox.put(
       HiveKeys.keyCurrentUser,
@@ -943,7 +945,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       final Map<String, dynamic> decoded =
           jsonDecode(userRaw) as Map<String, dynamic>;
       return AuthSession(
-        token: token,
+        accessToken: token,
         refreshToken: refresh,
         user: User.fromCache(decoded),
         role: role,
@@ -1089,7 +1091,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await _remote.register(request);
       final session = AuthSession(
-        token: response.token,
+        accessToken: response.accessToken,
         refreshToken: response.refreshToken,
         user: response.user,
         role: role,

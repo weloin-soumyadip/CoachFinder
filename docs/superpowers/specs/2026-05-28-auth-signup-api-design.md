@@ -17,7 +17,7 @@ Architecture decisions are made now (Result<T>, sealed AuthState, AsyncException
 `POST /api/auth/register` — see `server/api.md`. Salient facts the Flutter side depends on:
 
 - **Request body**: `{userType: "owner"|"teacher"|"student", name: string, email: string, password: string, phone?: string}`.
-- **Response 201**: `{token: string, refreshToken: string, user: {_id, name, email, phone, profileImage, isActive, isEmailVerified, createdAt, updatedAt, ...role-specific extras}}`.
+- **Response 201**: `{success: true, accessToken: string, refreshToken: string, user: {_id, name, email, phone, profileImage, isActive, isEmailVerified, createdAt, updatedAt, ...role-specific extras}}`. (The `success` flag is informational; we read the token / user fields directly.)
 - **`userType` matches our role constants** in `lib/core/providers/role_provider.dart` (`'student'`, `'owner'`, `'teacher'`). No translation layer needed.
 - **`name` is a single string** — the form's `firstNameCtrl.text` + `lastNameCtrl.text` are concatenated `'${first.trim()} ${last.trim()}'.trim()`.
 - **`phone` is optional** — the form doesn't collect phone, so we omit the key entirely.
@@ -117,12 +117,12 @@ Role-specific fields (teacher's `bio`, student's `currentClass`, etc.) live in d
 
 ```dart
 class AuthResponse {
-  const AuthResponse({required this.token, required this.refreshToken, required this.user});
-  final String token;
+  const AuthResponse({required this.accessToken, required this.refreshToken, required this.user});
+  final String accessToken;
   final String refreshToken;
   final User user;
   factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
-    token: json['token'] as String,
+    accessToken: json['accessToken'] as String,
     refreshToken: json['refreshToken'] as String,
     user: User.fromJson(json['user'] as Map<String, dynamic>),
   );
@@ -183,8 +183,8 @@ The repo returns an `AuthSession` value (defined alongside the repo since it's a
 
 ```dart
 class AuthSession {
-  const AuthSession({required this.token, required this.refreshToken, required this.user, required this.role});
-  final String token;
+  const AuthSession({required this.accessToken, required this.refreshToken, required this.user, required this.role});
+  final String accessToken;
   final String refreshToken;
   final User user;
   final String role;
@@ -292,7 +292,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await _remote.register(request);
       final session = AuthSession(
-        token: response.token,
+        accessToken: response.accessToken,
         refreshToken: response.refreshToken,
         user: response.user,
         role: role,
@@ -424,7 +424,7 @@ The UI is identical across all cases (a SnackBar with `state.message`). The mapp
 
 | Box | Key | Value | Source |
 |---|---|---|---|
-| `boxAuth` | `keyJwtToken` | `'eyJhbGc...'` | `AuthResponse.token` |
+| `boxAuth` | `keyJwtToken` | `'eyJhbGc...'` | `AuthResponse.accessToken` |
 | `boxAuth` | `keyRefreshToken` *(new)* | `'eyJhbGc...'` | `AuthResponse.refreshToken` |
 | `boxAuth` | `keyCurrentUser` | `'{"id":"67...","name":"Alice",...}'` (json string) | `jsonEncode(user.toJson())` |
 | `boxSettings` | `keyUserRole` | `'owner'` (or `'student'` / `'teacher'`) | `RegisterRequest.userType` |
