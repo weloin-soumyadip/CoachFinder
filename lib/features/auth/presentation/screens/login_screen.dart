@@ -1,22 +1,19 @@
-/// Sign In screen consuming authProvider.
+/// Sign In screen — calls authController.signIn and reacts to AuthState.
 library;
 
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/constants/dev_credentials.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../data/providers/auth_providers.dart';
 import '../../../../shared/widgets/brand_backdrop.dart';
 import '../../../../shared/widgets/glass_panel.dart';
+import '../../data/providers/auth_providers.dart';
 import '../auth_role_accents.dart';
 import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
@@ -24,13 +21,17 @@ import '../widgets/auth_widgets.dart';
 
 /// Sign In screen.
 ///
-/// The form validates on submit (email format + 8-char password). Phase 1: a
-/// `kDebugMode` test credential ([DevCredentials]) signs in and lands on the
-/// role-appropriate shell; any other input shows an error, and release builds
-/// disable the bypass. [initialRole] arrives from onboarding via GoRouter
-/// `extra`. The CTA, focused input ring, footer link, and remember toggle all
-/// adopt the active role's accent so the form visibly belongs to the chosen
-/// experience.
+/// The form validates on submit (email format + min 6-char password). On
+/// valid submit, it calls
+/// `ref.read(authControllerProvider.notifier).signIn(...)` and reacts to
+/// [AuthState] transitions via `ref.listen`:
+///
+///  - `AuthStatus.authenticated` → route to the role's landing screen.
+///  - `AuthStatus.error` → SnackBar with the failure message verbatim.
+///
+/// `AuthStatus.loading` greys out the Sign In button and swaps its label for
+/// a spinner. The CTA, focused input ring, footer link, and "Forgot
+/// password?" link all adopt the active role's accent.
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key, this.initialRole});
 
@@ -41,7 +42,6 @@ class LoginScreen extends HookConsumerWidget {
     final emailCtrl = useTextEditingController();
     final passwordCtrl = useTextEditingController();
     final passwordVisible = useState(false);
-    final rememberMe = useState(false);
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
@@ -49,6 +49,8 @@ class LoginScreen extends HookConsumerWidget {
     final String? role = ref.watch(roleProvider) ?? initialRole;
     final Color accent = authAccent(role);
     final List<Color> orbs = authBackdropOrbs(role);
+    final AuthState authState = ref.watch(authControllerProvider);
+    final bool isLoading = authState.isLoading;
 
     void stub(String message) {
       ScaffoldMessenger.of(context)
@@ -56,25 +58,27 @@ class LoginScreen extends HookConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(message)));
     }
 
+    ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      if (!context.mounted) return;
+      if (next.status == AuthStatus.authenticated && next.role != null) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        context.goNamed(landingRouteForRole(next.role!));
+      } else if (next.status == AuthStatus.error && next.errorMessage != null) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+      }
+    });
+
     Future<void> handleSignIn() async {
       if (!(formKey.currentState?.validate() ?? false)) return;
-      final email = emailCtrl.text.trim().toLowerCase();
-      final password = passwordCtrl.text;
-      final isTestUser = kDebugMode &&
-          email == DevCredentials.testEmail &&
-          password == DevCredentials.testPassword;
-      if (!isTestUser) {
-        stub(kDebugMode
-            ? AppStrings.loginInvalidCredentials
-            : AppStrings.stubAuthNotImplemented);
-        return;
-      }
-      final resolvedRole = ref.read(roleProvider) ?? initialRole ?? roleStudent;
-      await ref.read(tokenStorageProvider).saveAccessToken('phase1-dev-token');
-      await LocalStorage.set(StorageKeys.userRole, resolvedRole);
-      ref.read(roleProvider.notifier).state = resolvedRole;
-      if (!context.mounted) return;
-      context.goNamed(landingRouteForRole(resolvedRole));
+      final String resolvedRole =
+          ref.read(roleProvider) ?? initialRole ?? roleStudent;
+      await ref.read(authControllerProvider.notifier).signIn(
+            email: emailCtrl.text,
+            password: passwordCtrl.text,
+            role: resolvedRole,
+          );
     }
 
     return Scaffold(
@@ -150,37 +154,27 @@ class LoginScreen extends HookConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: AppSpacing.sp12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: <Widget>[
-                                _RememberToggle(
-                                  value: rememberMe.value,
-                                  accent: accent,
-                                  onChanged: (bool v) => rememberMe.value = v,
-                                ),
-                                GestureDetector(
-                                  onTap: () => context
-                                      .pushNamed(AppRoutes.forgotPassword),
-                                  child: Text(
-                                    AppStrings.forgotPassword,
-                                    style: textTheme.labelLarge?.copyWith(
-                                      color: accent,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    context.pushNamed(AppRoutes.forgotPassword),
+                                child: Text(
+                                  AppStrings.forgotPassword,
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: accent,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.sp16),
                             AuthPrimaryButton(
                               label: AppStrings.signIn,
                               accent: accent,
+                              isLoading: isLoading,
                               onPressed: handleSignIn,
                             ),
-                            if (kDebugMode) ...<Widget>[
-                              const SizedBox(height: AppSpacing.sp8),
-                              const _DebugCredentialHint(),
-                            ],
                           ],
                         ),
                       ),
@@ -227,93 +221,6 @@ class LoginScreen extends HookConsumerWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Remember for 30 days" checkbox + label. [accent] colors the checked state
-/// so the toggle matches the active role's brand.
-class _RememberToggle extends StatelessWidget {
-  const _RememberToggle({
-    required this.value,
-    required this.onChanged,
-    required this.accent,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: value,
-            onChanged: (bool? v) => onChanged(v ?? false),
-            activeColor: accent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sp4),
-            ),
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sp8),
-        Text(
-          AppStrings.authRememberMe,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: palette.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-/// Debug-only hint showing the test-account credentials beneath the Sign In
-/// button. Only rendered when `kDebugMode` is true, so it never ships.
-class _DebugCredentialHint extends StatelessWidget {
-  const _DebugCredentialHint();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final palette = context.palette;
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sp12,
-          vertical: AppSpacing.sp8,
-        ),
-        decoration: BoxDecoration(
-          color: palette.borderSubtle,
-          borderRadius: BorderRadius.circular(AppSpacing.sp8),
-          border: Border.all(color: palette.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(Icons.info_outline, size: 16, color: palette.textMuted),
-            const SizedBox(width: AppSpacing.sp8),
-            Flexible(
-              child: Text(
-                '${AppStrings.loginTestAccountLabel}: '
-                '${DevCredentials.testEmail} / ${DevCredentials.testPassword}',
-                style: textTheme.bodySmall?.copyWith(
-                  color: palette.textSecondary,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
