@@ -9,12 +9,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/dev_credentials.dart';
-import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/storage/hive_service_provider.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../data/providers/auth_providers.dart';
 import '../../../../shared/widgets/brand_backdrop.dart';
 import '../../../../shared/widgets/glass_panel.dart';
 import '../auth_role_accents.dart';
@@ -69,9 +69,10 @@ class LoginScreen extends HookConsumerWidget {
             : AppStrings.stubAuthNotImplemented);
         return;
       }
-      final hive = ref.read(hiveServiceProvider);
-      await hive.authBox.put(HiveKeys.keyJwtToken, 'phase1-dev-token');
       final resolvedRole = ref.read(roleProvider) ?? initialRole ?? roleStudent;
+      await ref.read(tokenStorageProvider).saveAccessToken('phase1-dev-token');
+      await LocalStorage.set(StorageKeys.userRole, resolvedRole);
+      ref.read(roleProvider.notifier).state = resolvedRole;
       if (!context.mounted) return;
       context.goNamed(landingRouteForRole(resolvedRole));
     }
