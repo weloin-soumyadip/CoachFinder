@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Semantic, theme-aware colours for surfaces, text, borders, and the brand
-/// foreground. Light values match the original fixed palette exactly (so light
-/// mode is unchanged); dark values are the "Dim charcoal" set.
+/// Semantic, theme-aware colours for surfaces, text, borders, the brand
+/// foreground, and the new neoglass effect tokens. Light values match the
+/// original fixed palette exactly (so light mode is unchanged); dark values are
+/// the "Dim charcoal" set with calibrated neoglass alphas.
 ///
-/// UI code reads these via the [BuildContextPalette.palette] extension - e.g.
-/// `context.palette.surface` - so a single widget tree adapts to light and dark
+/// UI code reads these via the [BuildContextPalette.palette] extension — e.g.
+/// `context.palette.surface` — so a single widget tree adapts to light and dark
 /// automatically. Fixed brand / semantic colours that read well in both themes
 /// (rating star, success, error, the solid brand fill behind white text, etc.)
 /// continue to come straight from [AppColors].
@@ -28,6 +29,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.inputFill,
     required this.primary,
     required this.primaryTint,
+    required this.neoShadowDark,
+    required this.neoShadowLight,
+    required this.glassFill,
+    required this.glassBorder,
   });
 
   /// App / scaffold background (was `neutralGrey50`).
@@ -51,7 +56,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Muted / tertiary text and hints (was `neutralGrey500`).
   final Color textMuted;
 
-  /// Faint decorative icons - chevrons, trailing glyphs (was `neutralGrey300`).
+  /// Faint decorative icons — chevrons, trailing glyphs (was `neutralGrey300`).
   final Color iconFaint;
 
   /// Auth form input background (was `inputFill`).
@@ -61,39 +66,61 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// dark mode for contrast (was `studentPrimary` when used as a foreground).
   final Color primary;
 
-  /// Tinted brand fill behind [primary] foregrounds - badges, avatars
+  /// Tinted brand fill behind [primary] foregrounds — badges, avatars
   /// (was `studentPrimaryTint`).
   final Color primaryTint;
 
-  /// Light palette - identical to the original fixed colours.
-  static const AppPalette light = AppPalette(
-    background: AppColors.neutralGrey50,
-    surface: AppColors.neutralWhite,
-    border: AppColors.neutralGrey200,
-    borderSubtle: AppColors.neutralGrey100,
-    textPrimary: AppColors.neutralBlack,
-    textSecondary: AppColors.neutralGrey700,
-    textMuted: AppColors.neutralGrey500,
-    iconFaint: AppColors.neutralGrey300,
-    inputFill: AppColors.inputFill,
-    primary: AppColors.studentPrimary,
-    primaryTint: AppColors.studentPrimaryTint,
-  );
+  /// "Weight" shadow on outset neo surfaces (bottom-right). Calibrated soft.
+  final Color neoShadowDark;
 
-  /// Dark palette - the "Dim charcoal" set.
-  static const AppPalette dark = AppPalette(
-    background: AppColors.darkBackground,
-    surface: AppColors.darkSurface,
-    border: AppColors.darkBorder,
-    borderSubtle: AppColors.darkBorderSubtle,
-    textPrimary: AppColors.darkTextPrimary,
-    textSecondary: AppColors.darkTextSecondary,
-    textMuted: AppColors.darkTextMuted,
-    iconFaint: AppColors.darkIconFaint,
-    inputFill: AppColors.darkInputFill,
-    primary: AppColors.darkPrimary,
-    primaryTint: AppColors.darkPrimaryTint,
-  );
+  /// "Light" highlight on outset neo surfaces (top-left). Intentionally faint
+  /// in dark mode — there is no real light source to fake.
+  final Color neoShadowLight;
+
+  /// Translucent fill behind [GlassPanel]'s [BackdropFilter]. Lower alpha in
+  /// dark mode so translucent reads as smoke, not milk.
+  final Color glassFill;
+
+  /// Hairline edge that catches the light on a glass panel.
+  final Color glassBorder;
+
+  /// Light palette — identical to the original fixed colours plus neoglass.
+  static AppPalette get light => AppPalette(
+        background: AppColors.neutralGrey50,
+        surface: AppColors.neutralWhite,
+        border: AppColors.neutralGrey200,
+        borderSubtle: AppColors.neutralGrey100,
+        textPrimary: AppColors.neutralBlack,
+        textSecondary: AppColors.neutralGrey700,
+        textMuted: AppColors.neutralGrey500,
+        iconFaint: AppColors.neutralGrey300,
+        inputFill: AppColors.inputFill,
+        primary: AppColors.studentPrimary,
+        primaryTint: AppColors.studentPrimaryTint,
+        neoShadowDark: AppColors.neutralBlack.withValues(alpha: 0.08),
+        neoShadowLight: AppColors.neutralWhite.withValues(alpha: 0.90),
+        glassFill: AppColors.neutralWhite.withValues(alpha: 0.60),
+        glassBorder: AppColors.neutralWhite.withValues(alpha: 0.60),
+      );
+
+  /// Dark palette — the "Dim charcoal" set plus neoglass dark calibration.
+  static AppPalette get dark => AppPalette(
+        background: AppColors.darkBackground,
+        surface: AppColors.darkSurface,
+        border: AppColors.darkBorder,
+        borderSubtle: AppColors.darkBorderSubtle,
+        textPrimary: AppColors.darkTextPrimary,
+        textSecondary: AppColors.darkTextSecondary,
+        textMuted: AppColors.darkTextMuted,
+        iconFaint: AppColors.darkIconFaint,
+        inputFill: AppColors.darkInputFill,
+        primary: AppColors.darkPrimary,
+        primaryTint: AppColors.darkPrimaryTint,
+        neoShadowDark: AppColors.neutralBlack.withValues(alpha: 0.50),
+        neoShadowLight: AppColors.darkSurface.withValues(alpha: 0.06),
+        glassFill: AppColors.darkSurface.withValues(alpha: 0.24),
+        glassBorder: AppColors.neutralWhite.withValues(alpha: 0.08),
+      );
 
   @override
   AppPalette copyWith({
@@ -108,6 +135,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? inputFill,
     Color? primary,
     Color? primaryTint,
+    Color? neoShadowDark,
+    Color? neoShadowLight,
+    Color? glassFill,
+    Color? glassBorder,
   }) {
     return AppPalette(
       background: background ?? this.background,
@@ -121,6 +152,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       inputFill: inputFill ?? this.inputFill,
       primary: primary ?? this.primary,
       primaryTint: primaryTint ?? this.primaryTint,
+      neoShadowDark: neoShadowDark ?? this.neoShadowDark,
+      neoShadowLight: neoShadowLight ?? this.neoShadowLight,
+      glassFill: glassFill ?? this.glassFill,
+      glassBorder: glassBorder ?? this.glassBorder,
     );
   }
 
@@ -139,6 +174,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       inputFill: Color.lerp(inputFill, other.inputFill, t)!,
       primary: Color.lerp(primary, other.primary, t)!,
       primaryTint: Color.lerp(primaryTint, other.primaryTint, t)!,
+      neoShadowDark: Color.lerp(neoShadowDark, other.neoShadowDark, t)!,
+      neoShadowLight: Color.lerp(neoShadowLight, other.neoShadowLight, t)!,
+      glassFill: Color.lerp(glassFill, other.glassFill, t)!,
+      glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
     );
   }
 }
