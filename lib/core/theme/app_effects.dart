@@ -10,7 +10,7 @@ abstract final class AppEffects {
 
   /// Default `BackdropFilter` sigma for [GlassPanel]. Calibrated for the
   /// "soft & premium" intensity — heavier blur reads as 2020 skeumorphism.
-  static const double glassBlur = 24;
+  static const double glassBlur = 32;
 
   /// Stronger blur for hero overlays / future modal sheets.
   static const double glassBlurStrong = 36;
