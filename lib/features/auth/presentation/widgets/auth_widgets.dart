@@ -1,4 +1,4 @@
-/// Shared layout widgets used by the login and register screens.
+/// Shared widgets used by the login, register, and forgot-password screens.
 library;
 
 import 'package:flutter/material.dart';
@@ -6,52 +6,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/neo_button.dart';
 
-/// Branding badge - blue rounded square with the school icon. Sits at the top
-/// of the login screen above the "CoachFinder" wordmark.
-class AuthBrandingBadge extends StatelessWidget {
-  const AuthBrandingBadge({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          color: AppColors.studentPrimary,
-          borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        ),
-        child: const Icon(
-          Icons.school,
-          color: AppColors.neutralWhite,
-          size: 36,
-        ),
-      ),
-    );
-  }
-}
-
-/// White rounded card wrapper used by both auth screens.
-class AuthCard extends StatelessWidget {
-  const AuthCard({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sp24),
-      decoration: BoxDecoration(
-        color: context.palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp24),
-      ),
-      child: child,
-    );
-  }
-}
-
-/// Full-width filled primary CTA with an optional trailing icon.
+/// Full-width filled primary CTA with an optional trailing icon, styled as a
+/// neo primary button on the brand fill.
 class AuthPrimaryButton extends StatelessWidget {
   const AuthPrimaryButton({
     super.key,
@@ -67,41 +25,35 @@ class AuthPrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.studentPrimary,
-          foregroundColor: AppColors.neutralWhite,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.sp12),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              label,
-              style: textTheme.titleMedium?.copyWith(
-                color: AppColors.neutralWhite,
-                fontWeight: FontWeight.w600,
-              ),
+    return NeoButton(
+      onPressed: onPressed,
+      filled: true,
+      accent: AppColors.studentPrimary,
+      height: 52,
+      radius: AppSpacing.sp12,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            label,
+            style: textTheme.titleMedium?.copyWith(
+              color: AppColors.neutralWhite,
+              fontWeight: FontWeight.w700,
             ),
-            if (trailingIcon != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sp8),
-              Icon(trailingIcon, size: 18),
-            ],
+          ),
+          if (trailingIcon != null) ...<Widget>[
+            const SizedBox(width: AppSpacing.sp8),
+            Icon(trailingIcon, size: 18, color: AppColors.neutralWhite),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-/// Outlined social-auth button (Google / Apple).
+/// Full-width social-auth button (Google / Facebook), styled as a neo
+/// secondary button on the surface fill.
 class AuthOAuthButton extends StatelessWidget {
   const AuthOAuthButton({
     super.key,
@@ -118,16 +70,12 @@ class AuthOAuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return OutlinedButton(
+    return NeoButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: palette.textPrimary,
-        side: BorderSide(color: palette.border),
-        minimumSize: const Size.fromHeight(48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.sp12),
-        ),
-      ),
+      filled: false,
+      accent: palette.textPrimary,
+      height: 52,
+      radius: AppSpacing.sp12,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -147,7 +95,7 @@ class AuthOAuthButton extends StatelessWidget {
   }
 }
 
-/// Horizontal divider with centred text - "or continue with" / "OR EMAIL".
+/// Horizontal divider with centred text — "Or".
 class AuthOrDivider extends StatelessWidget {
   const AuthOrDivider({super.key, required this.text});
 
@@ -164,10 +112,7 @@ class AuthOrDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp12),
           child: Text(
             text,
-            style: textTheme.labelSmall?.copyWith(
-              color: palette.textMuted,
-              letterSpacing: 1,
-            ),
+            style: textTheme.labelMedium?.copyWith(color: palette.textMuted),
           ),
         ),
         Expanded(child: Divider(color: palette.border)),
@@ -176,7 +121,7 @@ class AuthOrDivider extends StatelessWidget {
   }
 }
 
-/// Footer link - `prefix` text followed by a blue tappable `actionLabel`.
+/// Footer link — `prefix` text followed by a blue tappable `actionLabel`.
 class AuthBottomLink extends StatelessWidget {
   const AuthBottomLink({
     super.key,
