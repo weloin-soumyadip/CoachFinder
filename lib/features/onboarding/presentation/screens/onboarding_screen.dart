@@ -1,4 +1,4 @@
-/// Role selector - writes the chosen role to Hive and routes to login.
+/// Role selector — writes the chosen role to Hive and routes to login.
 library;
 
 import 'package:flutter/material.dart';
@@ -14,12 +14,32 @@ import '../../../../core/storage/hive_service_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/brand_backdrop.dart';
+import '../../../../shared/widgets/entrance_fade_slide.dart';
+import '../../../../shared/widgets/glass_panel.dart';
+import '../../../../shared/widgets/neo_button.dart';
+import '../../../../shared/widgets/neo_surface.dart';
 
-/// Onboarding screen.
-///
-/// User picks Student, Coaching Owner, or Teacher, then taps Continue.
-/// Selection state is kept locally until Continue: that tap persists the role
-/// to Hive, updates [roleProvider], and navigates to the login screen.
+/// A selectable onboarding role, with its own brand accent.
+class _RoleOptionData {
+  const _RoleOptionData({
+    required this.role,
+    required this.title,
+    required this.blurb,
+    required this.icon,
+    required this.accent,
+  });
+
+  final String role;
+  final String title;
+  final String blurb;
+  final IconData icon;
+  final Color accent;
+}
+
+/// Onboarding screen — neoglass styling, three-orb brand backdrop, glass role
+/// shelf, neo role tiles (the settled (selected) state IS the selection signal),
+/// and a neo Continue CTA that re-tweens to the selected role's accent.
 class OnboardingScreen extends HookConsumerWidget {
   const OnboardingScreen({super.key});
 
@@ -27,6 +47,44 @@ class OnboardingScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedRole = useState<String?>(null);
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
+
+    final entrance = useAnimationController(
+      duration: const Duration(milliseconds: 850),
+    );
+    useEffect(() {
+      entrance.forward();
+      return null;
+    }, const <Object?>[]);
+
+    final roles = <_RoleOptionData>[
+      const _RoleOptionData(
+        role: roleStudent,
+        title: AppStrings.roleStudentTitle,
+        blurb: AppStrings.roleStudentBlurb,
+        icon: Icons.school_outlined,
+        accent: AppColors.studentPrimary,
+      ),
+      const _RoleOptionData(
+        role: roleOwner,
+        title: AppStrings.roleOwnerTitle,
+        blurb: AppStrings.roleOwnerBlurb,
+        icon: Icons.storefront_outlined,
+        accent: AppColors.ownerAccent,
+      ),
+      const _RoleOptionData(
+        role: roleTeacher,
+        title: AppStrings.roleTeacherTitle,
+        blurb: AppStrings.roleTeacherBlurb,
+        icon: Icons.cast_for_education_outlined,
+        accent: AppColors.teacherAccent,
+      ),
+    ];
+
+    Color ctaAccent = AppColors.studentPrimary;
+    for (final _RoleOptionData r in roles) {
+      if (r.role == selectedRole.value) ctaAccent = r.accent;
+    }
 
     Future<void> handleContinue() async {
       final role = selectedRole.value;
@@ -39,97 +97,168 @@ class OnboardingScreen extends HookConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: context.palette.background,
-      body: SafeArea(
-        // Scroll-safe layout: the Continue button stays pinned to the bottom
-        // when there is room, and the whole column scrolls on short screens
-        // (three role cards can exceed the viewport on small phones).
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      const SizedBox(height: AppSpacing.sp8),
-                      _TopBar(),
-                      const SizedBox(height: AppSpacing.sp24),
-                      Text(
-                        AppStrings.onboardingTitle,
-                        textAlign: TextAlign.center,
-                        style: textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: context.palette.textPrimary,
+      backgroundColor: palette.background,
+      body: BrandBackdrop(
+        orbColors: const <Color>[
+          AppColors.studentPrimary,
+          AppColors.ownerAccent,
+          AppColors.teacherAccent,
+        ],
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.sp24,
+                            AppSpacing.sp16,
+                            AppSpacing.sp24,
+                            AppSpacing.sp16,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              const SizedBox(height: AppSpacing.sp16),
+                              EntranceFadeSlide(
+                                animation: entrance,
+                                start: 0.0,
+                                end: 0.45,
+                                child: const _Hero(),
+                              ),
+                              const SizedBox(height: AppSpacing.sp32),
+                              EntranceFadeSlide(
+                                animation: entrance,
+                                start: 0.10,
+                                end: 0.55,
+                                child: Text(
+                                  AppStrings.onboardingTitle,
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sp12),
+                              EntranceFadeSlide(
+                                animation: entrance,
+                                start: 0.18,
+                                end: 0.63,
+                                child: Text(
+                                  AppStrings.onboardingSubtitle,
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: palette.textMuted,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sp32),
+                              EntranceFadeSlide(
+                                animation: entrance,
+                                start: 0.26,
+                                end: 0.80,
+                                child: GlassPanel(
+                                  padding:
+                                      const EdgeInsets.all(AppSpacing.sp16),
+                                  child: Column(
+                                    children: <Widget>[
+                                      for (int i = 0;
+                                          i < roles.length;
+                                          i++) ...<Widget>[
+                                        if (i > 0)
+                                          const SizedBox(
+                                              height: AppSpacing.sp12),
+                                        _RoleTile(
+                                          data: roles[i],
+                                          selected: selectedRole.value ==
+                                              roles[i].role,
+                                          onTap: () => selectedRole.value =
+                                              roles[i].role,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              const SizedBox(height: AppSpacing.sp24),
+                              EntranceFadeSlide(
+                                animation: entrance,
+                                start: 0.55,
+                                end: 1.0,
+                                child: NeoButton(
+                                  onPressed: selectedRole.value == null
+                                      ? null
+                                      : handleContinue,
+                                  filled: true,
+                                  accent: ctaAccent,
+                                  height: 56,
+                                  radius: AppSpacing.sp16,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                        AppStrings.onboardingContinue,
+                                        style: textTheme.titleMedium?.copyWith(
+                                          color: AppColors.neutralWhite,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpacing.sp8),
+                                      const Icon(
+                                        Icons.arrow_forward,
+                                        size: 18,
+                                        color: AppColors.neutralWhite,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sp8),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sp12),
-                      Text(
-                        AppStrings.onboardingSubtitle,
-                        textAlign: TextAlign.center,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: context.palette.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sp24),
-                      _RoleCard(
-                        title: AppStrings.roleStudentTitle,
-                        blurb: AppStrings.roleStudentBlurb,
-                        icon: Icons.school,
-                        iconColor: context.palette.primary,
-                        iconBackground: context.palette.primaryTint,
-                        selected: selectedRole.value == roleStudent,
-                        onTap: () => selectedRole.value = roleStudent,
-                      ),
-                      const SizedBox(height: AppSpacing.sp16),
-                      _RoleCard(
-                        title: AppStrings.roleOwnerTitle,
-                        blurb: AppStrings.roleOwnerBlurb,
-                        icon: Icons.storefront,
-                        iconColor: context.palette.textSecondary,
-                        iconBackground: context.palette.border,
-                        selected: selectedRole.value == roleOwner,
-                        onTap: () => selectedRole.value = roleOwner,
-                      ),
-                      const SizedBox(height: AppSpacing.sp16),
-                      _RoleCard(
-                        title: AppStrings.roleTeacherTitle,
-                        blurb: AppStrings.roleTeacherBlurb,
-                        icon: Icons.cast_for_education,
-                        iconColor: AppColors.teacherAccent,
-                        iconBackground: AppColors.teacherAccentTint,
-                        selected: selectedRole.value == roleTeacher,
-                        onTap: () => selectedRole.value = roleTeacher,
-                      ),
-                      const Spacer(),
-                      const SizedBox(height: AppSpacing.sp24),
-                      _ContinueButton(
-                        enabled: selectedRole.value != null,
-                        onPressed: handleContinue,
-                      ),
-                      const SizedBox(height: AppSpacing.sp16),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-/// Top bar with back arrow (no-op in Phase 1), CoachFinder wordmark, and a
-/// placeholder profile icon.
-class _TopBar extends StatelessWidget {
+/// Brand lockup: an embossed neo logo badge above the CoachFinder wordmark.
+class _Hero extends StatelessWidget {
+  const _Hero();
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Row(
+    return Column(
       children: <Widget>[
+        NeoSurface(
+          fill: AppColors.studentPrimary,
+          padding: const EdgeInsets.all(AppSpacing.sp16),
+          radius: AppSpacing.sp16,
+          child: const Icon(
+            Icons.school_rounded,
+            color: AppColors.neutralWhite,
+            size: 34,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sp12),
         Text(
           AppStrings.appName,
           style: textTheme.titleLarge?.copyWith(
@@ -142,24 +271,16 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// A selectable role card. Highlighted with a primary-coloured border when
-/// [selected] is true.
-class _RoleCard extends StatelessWidget {
-  const _RoleCard({
-    required this.title,
-    required this.blurb,
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
+/// A selectable role row — accent icon tile + title + blurb + radio indicator,
+/// presented as a [NeoButton] whose settled (selected) state IS the signal.
+class _RoleTile extends StatelessWidget {
+  const _RoleTile({
+    required this.data,
     required this.selected,
     required this.onTap,
   });
 
-  final String title;
-  final String blurb;
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
+  final _RoleOptionData data;
   final bool selected;
   final VoidCallback onTap;
 
@@ -167,91 +288,90 @@ class _RoleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    final borderColor = selected ? palette.primary : palette.border;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.sp16),
-            border: Border.all(
-              color: borderColor,
-              width: selected ? 2 : 1,
+    return NeoButton(
+      onPressed: onTap,
+      selected: selected,
+      accent: data.accent,
+      filled: false,
+      height: 88,
+      radius: AppSpacing.sp16,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp16),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: data.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppSpacing.sp12),
+            ),
+            child: Icon(data.icon, color: data.accent, size: 24),
+          ),
+          const SizedBox(width: AppSpacing.sp16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  data.title,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: palette.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sp4),
+                Text(
+                  data.blurb,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: palette.textMuted,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
-          padding: const EdgeInsets.all(AppSpacing.sp24),
-          child: Column(
-            children: <Widget>[
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: iconBackground,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 28),
-              ),
-              const SizedBox(height: AppSpacing.sp16),
-              Text(
-                title,
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: palette.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sp8),
-              Text(
-                blurb,
-                textAlign: TextAlign.center,
-                style: textTheme.bodySmall?.copyWith(
-                  color: palette.textMuted,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
+          const SizedBox(width: AppSpacing.sp12),
+          _SelectIndicator(selected: selected, accent: data.accent),
+        ],
       ),
     );
   }
 }
 
-/// Full-width Continue CTA. Disabled (low-emphasis grey) until a role is
-/// picked; once enabled, becomes the filled primary-colour action.
-class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({required this.enabled, required this.onPressed});
+/// Radio-style indicator: outlined circle that fills with [accent] when
+/// [selected], with an animated checkmark.
+class _SelectIndicator extends StatelessWidget {
+  const _SelectIndicator({required this.selected, required this.accent});
 
-  final bool enabled;
-  final VoidCallback onPressed;
+  final bool selected;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        onPressed: enabled ? onPressed : null,
-        style: FilledButton.styleFrom(
-          backgroundColor: enabled ? AppColors.studentPrimary : palette.border,
-          disabledBackgroundColor: palette.border,
-          foregroundColor: AppColors.neutralWhite,
-          disabledForegroundColor: palette.textMuted,
-          minimumSize: const Size.fromHeight(56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.sp16),
-          ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: selected ? accent : Colors.transparent,
+        border: Border.all(
+          color: selected ? accent : palette.border,
+          width: 2,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(AppStrings.onboardingContinue),
-            const SizedBox(width: AppSpacing.sp8),
-            const Icon(Icons.arrow_forward, size: 18),
-          ],
+      ),
+      child: AnimatedScale(
+        scale: selected ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutBack,
+        child: const Icon(
+          Icons.check,
+          size: 16,
+          color: AppColors.neutralWhite,
         ),
       ),
     );
