@@ -7,6 +7,7 @@ import '../../../../core/api/api_error.dart';
 import '../../../../core/api/api_response.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../models/auth_response_model.dart';
+import '../models/login_request_model.dart';
 import '../models/register_request_model.dart';
 
 /// Feature-specific exception thrown by [AuthRepository] on failure.
@@ -61,6 +62,36 @@ class AuthRepository {
       rethrow;
     } catch (_) {
       throw AuthException('Something went wrong while signing up');
+    }
+  }
+
+  /// Calls `POST /api/auth/login` and persists the returned tokens.
+  /// Returns the parsed [AuthResponse] (including the [User]).
+  Future<AuthResponse> login(LoginRequest request) async {
+    try {
+      final dioResponse = await _apiClient.rawPost(
+        ApiConfig.authLogin,
+        data: request.toJson(),
+      );
+      final apiResponse = ApiResponse<AuthResponse>.fromJson(
+        dioResponse.data ?? <String, dynamic>{},
+        (json) => AuthResponse.fromJson(json),
+      );
+      if (!apiResponse.success || apiResponse.data == null) {
+        throw AuthException(apiResponse.message ?? 'Failed to sign in');
+      }
+      final authResponse = apiResponse.data!;
+      await _tokenStorage.saveTokens(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+      );
+      return authResponse;
+    } on ApiError catch (e) {
+      throw AuthException(e.message, code: e.statusCode?.toString());
+    } on AuthException {
+      rethrow;
+    } catch (_) {
+      throw AuthException('Something went wrong while signing in');
     }
   }
 
