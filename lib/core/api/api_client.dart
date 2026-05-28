@@ -3,6 +3,7 @@ library;
 
 import 'package:dio/dio.dart';
 
+import '../storage/local_storage.dart';
 import '../storage/token_storage.dart';
 import 'api_config.dart';
 import 'api_error.dart';
@@ -11,8 +12,10 @@ import 'api_response.dart';
 /// The single HTTP entry point repositories use. Wraps Dio with:
 ///   - an interceptor that injects `Authorization: Bearer <accessToken>` on
 ///     every outbound request when [TokenStorage] has one;
-///   - a 401 handler that clears [TokenStorage] so the next route guard
-///     forces re-login (refresh-token rotation is a later round);
+///   - a 401 handler that clears both [TokenStorage] and the cached
+///     `currentUserId` in [LocalStorage] so the router's session check
+///     falls back to the login screen on the next navigation tick
+///     (refresh-token rotation is a later round);
 ///   - error mapping from [DioException] into the structured [ApiError]
 ///     types — timeouts, network failures, 4xx with backend `message`, and
 ///     a generic 5xx.
@@ -56,6 +59,7 @@ class ApiClient {
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
             await _tokenStorage.clearTokens();
+            await LocalStorage.remove(StorageKeys.currentUserId);
           }
           handler.next(e);
         },

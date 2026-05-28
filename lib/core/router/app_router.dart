@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../shared/layouts/adaptive_navigation.dart';
 import '../constants/app_strings.dart';
 import '../providers/role_provider.dart';
+import '../storage/local_storage.dart';
 import 'app_routes.dart';
 
 // Feature screens. These are placeholder Scaffolds at this point and will be
@@ -89,6 +90,12 @@ abstract final class AppRouter {
       debugLogDiagnostics: false,
       redirect: (BuildContext context, GoRouterState state) {
         final role = ref.read(roleProvider);
+        // Sync proxy for "has a real authenticated session": currentUserId is
+        // written by AuthController.signIn/register on success and removed by
+        // logout (and by ApiClient on a 401). Picking a role on onboarding
+        // sets the role but does NOT set currentUserId — so the user can't
+        // skip past auth by selecting a role.
+        final hasSession = LocalStorage.containsKey(StorageKeys.currentUserId);
 
         final loc = state.matchedLocation;
         final isOnboarding = loc == '/onboarding';
@@ -98,15 +105,21 @@ abstract final class AppRouter {
         final isOwnerRoute = _matchesPrefix(loc, _ownerPrefixes);
         final isTeacherRoute = _matchesPrefix(loc, _teacherPrefixes);
 
-        // No role: only the onboarding / auth flow is allowed. The network layer
-        // clears the access token on 401, so a stale token without role is
-        // recovered the next time the user tries to use a protected endpoint.
+        // No role yet: only onboarding / auth flow is allowed.
         if (role == null) {
           if (isOnboarding || isAuthRoute) return null;
           return '/onboarding';
         }
 
-        // Has role - kick out of onboarding / auth into the shell home.
+        // Role picked but no auth session: send to login. Onboarding and the
+        // other auth routes (register, forgot-password) stay reachable so the
+        // user can pick a different role or sign up.
+        if (!hasSession) {
+          if (isOnboarding || isAuthRoute) return null;
+          return '/login';
+        }
+
+        // Role + session - kick out of onboarding / auth into the shell home.
         if (isOnboarding || isAuthRoute) {
           return _homeFor(role);
         }
