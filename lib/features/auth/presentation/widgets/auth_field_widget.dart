@@ -1,19 +1,20 @@
-/// Themed input field used by the auth forms — neo "recessed well" styling.
+/// Themed input field used by the auth forms — transparent on glass.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../shared/widgets/neo_input_decoration.dart';
-import '../../../../shared/widgets/neo_surface.dart';
 
-/// A Material 3 `TextFormField` styled as a recessed neo well: the field sits
-/// inside a [NeoSurface] with `inset: true` so it reads as pressed-into the
-/// page. Pass a [validator] (runs when the enclosing `Form` is validated); for
+/// A Material 3 `TextFormField` with a subtle accent-tinted fill ([accent] at
+/// 6 % alpha) so the underlying [GlassPanel] still shows through while the
+/// field reads as part of the role's brand. A hairline `palette.borderSubtle`
+/// outline marks the field at rest; the outline + floating label tween to
+/// [accent] (defaults to `context.palette.primary`) when the field is focused.
+///
+/// Pass a [validator] (runs when the enclosing `Form` is validated); for
 /// password inputs pass `obscureText: true` and use [trailing] for the
-/// visibility-toggle button. [accent] colors the floating label when the
-/// field is focused; defaults to `context.palette.primary`.
+/// visibility-toggle button.
 class AuthFieldWidget extends StatelessWidget {
   const AuthFieldWidget({
     super.key,
@@ -43,27 +44,45 @@ class AuthFieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return NeoSurface(
-      inset: true,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp4),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        validator: validator,
-        style: Theme.of(context)
-            .textTheme
-            .bodyLarge
-            ?.copyWith(color: palette.textPrimary),
-        decoration: neoInputDecoration(
-          context: context,
-          label: label,
-          icon: icon,
-          hint: hint,
-          suffix: trailing,
-          accent: accent,
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final Color brand = accent ?? palette.primary;
+    final BorderRadius radius = BorderRadius.circular(AppSpacing.sp12);
+
+    OutlineInputBorder outline(Color color, {double width = 1}) =>
+        OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide(color: color, width: width),
+        );
+
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      validator: validator,
+      style: textTheme.bodyLarge?.copyWith(color: palette.textPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: textTheme.bodyLarge?.copyWith(color: palette.textMuted),
+        floatingLabelStyle: textTheme.labelLarge?.copyWith(
+          color: brand,
+          fontWeight: FontWeight.w600,
         ),
+        hintText: hint,
+        hintStyle: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+        filled: true,
+        fillColor: brand.withValues(alpha: 0.06),
+        prefixIcon: Icon(icon, color: palette.textMuted, size: 20),
+        suffixIcon: trailing,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sp12,
+          vertical: AppSpacing.sp16,
+        ),
+        border: outline(palette.borderSubtle),
+        enabledBorder: outline(palette.borderSubtle),
+        focusedBorder: outline(brand, width: 1.5),
+        errorBorder: outline(palette.border),
+        focusedErrorBorder: outline(brand, width: 1.5),
       ),
     );
   }
