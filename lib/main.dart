@@ -1,30 +1,34 @@
 /// Application entry point.
 ///
-/// Initialises Hive, hydrates the role state from local storage, then mounts
-/// the [CoachFinderApp] inside a Riverpod [ProviderScope].
+/// Initialises [LocalStorage] (and the legacy [HiveService] until Task 15),
+/// hydrates the role + theme from local storage, then mounts the
+/// [CoachFinderApp] inside a Riverpod [ProviderScope].
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants/app_strings.dart';
+// ignore: unused_import
 import 'core/constants/hive_keys.dart';
 import 'core/providers/role_provider.dart';
 import 'core/providers/theme_mode_provider.dart';
 import 'core/router/router_provider.dart';
 import 'core/storage/hive_service.dart';
+import 'core/storage/local_storage.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialise local storage before the first widget builds so the router can
-  // read the cached role and JWT synchronously.
+  // New LocalStorage is the authoritative store; HiveService stays alive
+  // for unmigrated consumers until Task 15 cleans it up.
+  await LocalStorage.init();
   await HiveService.instance.init();
-  final settingsBox = HiveService.instance.settingsBox;
-  final initialRole = settingsBox.get(HiveKeys.keyUserRole) as String?;
+
+  final initialRole = LocalStorage.get<String>(StorageKeys.userRole);
   final initialThemeMode = themeModeFromStorage(
-    settingsBox.get(HiveKeys.keyThemeMode) as String?,
+    LocalStorage.get<String>(StorageKeys.themeMode),
   );
 
   runApp(
