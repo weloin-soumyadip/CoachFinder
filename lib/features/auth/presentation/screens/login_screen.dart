@@ -1,4 +1,4 @@
-/// Login screen consuming authProvider.
+/// Sign In screen consuming authProvider.
 library;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -13,18 +13,23 @@ import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/hive_service_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/brand_backdrop.dart';
+import '../../../../shared/widgets/glass_panel.dart';
+import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
 import '../widgets/auth_widgets.dart';
 
-/// Login screen.
+/// Sign In screen.
 ///
-/// Phase 1 placeholder: the form is interactive (input typing, password
-/// visibility toggle, focus styles) but the submit / forgot-password / social
-/// buttons surface SnackBar stubs until the backend auth contract lands.
-/// [initialRole] is received from onboarding via GoRouter `extra` and will be
-/// used to choose the post-login landing route once auth is real.
+/// The form validates on submit (email format + 8-char password). Phase 1: a
+/// `kDebugMode` test credential ([DevCredentials]) signs in and lands on the
+/// role-appropriate shell; any other input shows an error, and release builds
+/// disable the bypass. [initialRole] arrives from onboarding via GoRouter
+/// `extra`. The "Remember for 30 days" toggle and social buttons are local /
+/// stubbed until the backend auth contract lands.
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key, this.initialRole});
 
@@ -35,8 +40,10 @@ class LoginScreen extends HookConsumerWidget {
     final emailCtrl = useTextEditingController();
     final passwordCtrl = useTextEditingController();
     final passwordVisible = useState(false);
-    final textTheme = Theme.of(context).textTheme;
+    final rememberMe = useState(false);
+    final formKey = useMemoized(GlobalKey<FormState>.new);
     final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
 
     void stub(String message) {
       ScaffoldMessenger.of(context)
@@ -44,12 +51,8 @@ class LoginScreen extends HookConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(message)));
     }
 
-    // TODO(real-auth): replace with the real login flow once the backend
-    // contract lands. Until then a debug-only test credential signs in: typing
-    // the [DevCredentials] account writes a placeholder JWT and lands on the
-    // role-appropriate shell. Any other input is rejected, and in release
-    // builds the bypass is disabled entirely so it can't ship.
-    Future<void> handleLogIn() async {
+    Future<void> handleSignIn() async {
+      if (!(formKey.currentState?.validate() ?? false)) return;
       final email = emailCtrl.text.trim().toLowerCase();
       final password = passwordCtrl.text;
       final isTestUser = kDebugMode &&
@@ -70,122 +73,145 @@ class LoginScreen extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const SizedBox(height: AppSpacing.sp32),
-              const AuthBrandingBadge(),
-              const SizedBox(height: AppSpacing.sp12),
-              Text(
-                AppStrings.appName,
-                textAlign: TextAlign.center,
-                style: textTheme.titleLarge?.copyWith(
-                  color: palette.primary,
-                  fontWeight: FontWeight.w700,
+      body: BrandBackdrop(
+        orbColors: const <Color>[
+          AppColors.studentPrimary,
+          AppColors.studentPrimaryDark,
+        ],
+        child: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sp24,
+                  AppSpacing.sp32,
+                  AppSpacing.sp24,
+                  AppSpacing.sp32,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sp24),
-              AuthCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Text(
-                      AppStrings.loginTitle,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: palette.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp4),
-                    Text(
-                      AppStrings.loginSubtitle,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: palette.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    AuthFieldWidget(
-                      label: AppStrings.fieldEmail,
-                      hint: AppStrings.hintEmail,
-                      icon: Icons.mail_outline,
-                      controller: emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    AuthFieldWidget(
-                      label: AppStrings.fieldPassword,
-                      icon: Icons.lock_outline,
-                      controller: passwordCtrl,
-                      obscureText: !passwordVisible.value,
-                      labelTrailing: GestureDetector(
-                        onTap: () => stub(AppStrings.stubForgotPassword),
-                        child: Text(
-                          AppStrings.forgotPassword,
-                          style: textTheme.labelLarge?.copyWith(
-                            color: palette.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text(
+                        AppStrings.loginTitle,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: palette.textPrimary,
                         ),
                       ),
-                      trailing: IconButton(
-                        icon: Icon(
-                          passwordVisible.value
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                      const SizedBox(height: AppSpacing.sp8),
+                      Text(
+                        AppStrings.loginSubtitle,
+                        style: textTheme.bodyMedium?.copyWith(
                           color: palette.textMuted,
-                          size: 20,
                         ),
-                        onPressed: () =>
-                            passwordVisible.value = !passwordVisible.value,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    AuthPrimaryButton(
-                      label: AppStrings.logInButton,
-                      trailingIcon: Icons.login,
-                      onPressed: handleLogIn,
-                    ),
-                    if (kDebugMode) ...<Widget>[
-                      const SizedBox(height: AppSpacing.sp12),
-                      const _DebugCredentialHint(),
+                      const SizedBox(height: AppSpacing.sp24),
+                      GlassPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            AuthFieldWidget(
+                              label: AppStrings.fieldEmail,
+                              hint: AppStrings.hintEmail,
+                              icon: Icons.mail_outline,
+                              controller: emailCtrl,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              validator: AuthValidators.email,
+                            ),
+                            const SizedBox(height: AppSpacing.sp16),
+                            AuthFieldWidget(
+                              label: AppStrings.fieldPassword,
+                              icon: Icons.lock_outline,
+                              controller: passwordCtrl,
+                              obscureText: !passwordVisible.value,
+                              textInputAction: TextInputAction.done,
+                              validator: AuthValidators.password,
+                              trailing: IconButton(
+                                icon: Icon(
+                                  passwordVisible.value
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: palette.textMuted,
+                                  size: 20,
+                                ),
+                                onPressed: () => passwordVisible.value =
+                                    !passwordVisible.value,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sp16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: <Widget>[
+                                _RememberToggle(
+                                  value: rememberMe.value,
+                                  onChanged: (bool v) => rememberMe.value = v,
+                                ),
+                                GestureDetector(
+                                  onTap: () => context
+                                      .pushNamed(AppRoutes.forgotPassword),
+                                  child: Text(
+                                    AppStrings.forgotPassword,
+                                    style: textTheme.labelLarge?.copyWith(
+                                      color: palette.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.sp24),
+                            AuthPrimaryButton(
+                              label: AppStrings.signIn,
+                              onPressed: handleSignIn,
+                            ),
+                            if (kDebugMode) ...<Widget>[
+                              const SizedBox(height: AppSpacing.sp12),
+                              const _DebugCredentialHint(),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      const AuthOrDivider(text: AppStrings.authOr),
+                      const SizedBox(height: AppSpacing.sp16),
+                      GlassPanel(
+                        padding: const EdgeInsets.all(AppSpacing.sp16),
+                        child: Column(
+                          children: <Widget>[
+                            AuthOAuthButton(
+                              label: AppStrings.socialGoogle,
+                              icon: Icons.g_mobiledata,
+                              onPressed: () =>
+                                  stub(AppStrings.stubGoogleSignIn),
+                            ),
+                            const SizedBox(height: AppSpacing.sp12),
+                            AuthOAuthButton(
+                              label: AppStrings.socialFacebook,
+                              icon: Icons.facebook,
+                              onPressed: () => stub(AppStrings.stubAppleSignIn),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      AuthBottomLink(
+                        prefix: AppStrings.dontHaveAccount,
+                        actionLabel: AppStrings.signUp,
+                        onAction: () => context.goNamed(
+                          AppRoutes.register,
+                          extra: initialRole,
+                        ),
+                      ),
                     ],
-                    const SizedBox(height: AppSpacing.sp16),
-                    const AuthOrDivider(text: AppStrings.orContinueWith),
-                    const SizedBox(height: AppSpacing.sp16),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: AuthOAuthButton(
-                            label: AppStrings.google,
-                            icon: Icons.g_mobiledata,
-                            onPressed: () => stub(AppStrings.stubGoogleSignIn),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sp12),
-                        Expanded(
-                          child: AuthOAuthButton(
-                            label: AppStrings.apple,
-                            icon: Icons.apple,
-                            onPressed: () => stub(AppStrings.stubAppleSignIn),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sp16),
-              AuthBottomLink(
-                prefix: AppStrings.dontHaveAccount,
-                actionLabel: AppStrings.signUp,
-                onAction: () =>
-                    context.goNamed(AppRoutes.register, extra: initialRole),
-              ),
-              const SizedBox(height: AppSpacing.sp24),
-            ],
+            ),
           ),
         ),
       ),
@@ -193,9 +219,48 @@ class LoginScreen extends HookConsumerWidget {
   }
 }
 
-/// Debug-only hint showing the test-account credentials beneath the Log In
-/// button so they don't have to be memorised while testing. The call site only
-/// renders this when `kDebugMode` is true, so it never appears in release.
+/// "Remember for 30 days" checkbox + label.
+class _RememberToggle extends StatelessWidget {
+  const _RememberToggle({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: value,
+            onChanged: (bool? v) => onChanged(v ?? false),
+            activeColor: palette.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.sp4),
+            ),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sp8),
+        Text(
+          AppStrings.authRememberMe,
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: palette.textSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+/// Debug-only hint showing the test-account credentials beneath the Sign In
+/// button. Only rendered when `kDebugMode` is true, so it never ships.
 class _DebugCredentialHint extends StatelessWidget {
   const _DebugCredentialHint();
 
@@ -217,11 +282,7 @@ class _DebugCredentialHint extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(
-              Icons.info_outline,
-              size: 16,
-              color: palette.textMuted,
-            ),
+            Icon(Icons.info_outline, size: 16, color: palette.textMuted),
             const SizedBox(width: AppSpacing.sp8),
             Flexible(
               child: Text(
