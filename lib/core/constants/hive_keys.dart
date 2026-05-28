@@ -16,6 +16,12 @@ abstract final class HiveKeys {
   static const String keyThemeMode = 'theme_mode';
 
   // Keys inside [boxAuth]
+  /// Hive auth-box key for the JWT access token.
   static const String keyJwtToken = 'jwt_token';
+
+  /// Hive auth-box key for the long-lived refresh token.
+  static const String keyRefreshToken = 'refresh_token';
+
+  /// Hive auth-box key for the current authenticated user.
   static const String keyCurrentUser = 'current_user';
 }
