@@ -1,4 +1,4 @@
-/// Sign Up screen — calls authProvider.register and reacts to AuthState.
+/// Sign Up screen — calls authController.register and reacts to AuthState.
 library;
 
 import 'package:flutter/material.dart';
@@ -13,8 +13,7 @@ import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/brand_backdrop.dart';
 import '../../../../shared/widgets/glass_panel.dart';
-import '../../data/controllers/auth_provider.dart';
-import '../../data/models/auth_state.dart';
+import '../../data/providers/auth_providers.dart';
 import '../auth_role_accents.dart';
 import '../auth_validators.dart';
 import '../widgets/auth_field_widget.dart';
@@ -22,16 +21,15 @@ import '../widgets/auth_widgets.dart';
 
 /// Sign Up screen.
 ///
-/// The form validates on submit (required names, email format, 8-char password,
-/// matching confirmation). On valid submit, it calls
-/// `ref.read(authProvider.notifier).register(...)` and reacts to [AuthState]
-/// transitions via `ref.listen`:
+/// The form validates on submit. On valid submit, it calls
+/// `ref.read(authControllerProvider.notifier).register(...)` and reacts to
+/// [AuthState] transitions via `ref.listen`:
 ///
-///  - `AuthAuthenticated` → route to the role's landing screen.
-///  - `AuthError` → SnackBar with the failure message verbatim.
+///  - `AuthStatus.authenticated` → route to the role's landing screen.
+///  - `AuthStatus.error` → SnackBar with the failure message verbatim.
 ///
-/// `AuthLoading` greys out the Sign Up button and swaps its label for a
-/// spinner. The CTA, focused input ring, and footer link all adopt the
+/// `AuthStatus.loading` greys out the Sign Up button and swaps its label for
+/// a spinner. The CTA, focused input ring, and footer link all adopt the
 /// active role's accent.
 class RegisterScreen extends HookConsumerWidget {
   const RegisterScreen({super.key, this.initialRole});
@@ -54,8 +52,8 @@ class RegisterScreen extends HookConsumerWidget {
     final String? role = ref.watch(roleProvider) ?? initialRole;
     final Color accent = authAccent(role);
     final List<Color> orbs = authBackdropOrbs(role);
-    final AuthState authState = ref.watch(authProvider);
-    final bool isLoading = authState is AuthLoading;
+    final AuthState authState = ref.watch(authControllerProvider);
+    final bool isLoading = authState.isLoading;
 
     void stub(String message) {
       ScaffoldMessenger.of(context)
@@ -63,16 +61,15 @@ class RegisterScreen extends HookConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(message)));
     }
 
-    // React to state transitions for navigation + error UX.
-    ref.listen<AuthState>(authProvider, (previous, next) {
+    ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (!context.mounted) return;
-      if (next is AuthAuthenticated) {
+      if (next.status == AuthStatus.authenticated && next.role != null) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        context.goNamed(landingRouteForRole(next.role));
-      } else if (next is AuthError) {
+        context.goNamed(landingRouteForRole(next.role!));
+      } else if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(next.message)));
+          ..showSnackBar(SnackBar(content: Text(next.errorMessage!)));
       }
     });
 
@@ -80,7 +77,7 @@ class RegisterScreen extends HookConsumerWidget {
       if (!(formKey.currentState?.validate() ?? false)) return;
       final String resolvedRole =
           ref.read(roleProvider) ?? initialRole ?? roleStudent;
-      await ref.read(authProvider.notifier).register(
+      await ref.read(authControllerProvider.notifier).register(
             firstName: firstNameCtrl.text,
             lastName: lastNameCtrl.text,
             email: emailCtrl.text,
