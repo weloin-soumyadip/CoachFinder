@@ -39,8 +39,6 @@ abstract final class AppStrings {
   static const String orContinueWith = 'or continue with';
   static const String dontHaveAccount = "Don't have an account?";
   static const String signUp = 'Sign Up';
-  static const String loginInvalidCredentials = 'Invalid email or password.';
-  static const String loginTestAccountLabel = 'Debug test account';
 
   // Auth - register screen
   static const String registerTitle = 'Create Account';
@@ -66,7 +64,6 @@ abstract final class AppStrings {
 
   // Auth - shared (redesign)
   static const String authOr = 'Or';
-  static const String authRememberMe = 'Remember for 30 days';
   static const String socialGoogle = 'Google';
   static const String socialFacebook = 'Facebook';
 
@@ -232,8 +229,6 @@ abstract final class AppStrings {
   static const String enquiryNotFound = 'This enquiry is no longer available.';
 
   // Phase 1 stub messages
-  static const String stubAuthNotImplemented =
-      'Phase 1: auth backend not implemented yet.';
   static const String stubGoogleSignIn =
       'Phase 1: Google sign-in not implemented yet.';
   static const String stubAppleSignIn =
