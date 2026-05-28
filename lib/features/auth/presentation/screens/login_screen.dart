@@ -188,19 +188,24 @@ class LoginScreen extends HookConsumerWidget {
                       const SizedBox(height: AppSpacing.sp12),
                       GlassPanel(
                         padding: const EdgeInsets.all(AppSpacing.sp12),
-                        child: Column(
+                        child: Row(
                           children: <Widget>[
-                            AuthOAuthButton(
-                              label: AppStrings.socialGoogle,
-                              icon: Icons.g_mobiledata,
-                              onPressed: () =>
-                                  stub(AppStrings.stubGoogleSignIn),
+                            Expanded(
+                              child: AuthOAuthButton(
+                                label: AppStrings.socialGoogle,
+                                icon: Icons.g_mobiledata_outlined,
+                                onPressed: () =>
+                                    stub(AppStrings.stubGoogleSignIn),
+                              ),
                             ),
-                            const SizedBox(height: AppSpacing.sp8),
-                            AuthOAuthButton(
-                              label: AppStrings.socialFacebook,
-                              icon: Icons.facebook,
-                              onPressed: () => stub(AppStrings.stubAppleSignIn),
+                            const SizedBox(width: AppSpacing.sp8),
+                            Expanded(
+                              child: AuthOAuthButton(
+                                label: AppStrings.socialFacebook,
+                                icon: Icons.facebook,
+                                onPressed: () =>
+                                    stub(AppStrings.stubAppleSignIn),
+                              ),
                             ),
                           ],
                         ),

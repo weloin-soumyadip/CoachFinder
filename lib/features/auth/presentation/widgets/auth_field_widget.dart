@@ -45,7 +45,7 @@ class AuthFieldWidget extends StatelessWidget {
     final palette = context.palette;
     return NeoSurface(
       inset: true,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp4),
       child: TextFormField(
         controller: controller,
         obscureText: obscureText,

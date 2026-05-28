@@ -58,6 +58,35 @@ abstract final class AppStrings {
   static const String alreadyHaveAccount = 'Already have an account?';
   static const String signIn = 'Sign In';
 
+  // Auth - sign-up name fields
+  static const String fieldFirstName = 'First Name';
+  static const String hintFirstName = 'John';
+  static const String fieldLastName = 'Last Name';
+  static const String hintLastName = 'Doe';
+
+  // Auth - shared (redesign)
+  static const String authOr = 'Or';
+  static const String authRememberMe = 'Remember for 30 days';
+  static const String socialGoogle = 'Google';
+  static const String socialFacebook = 'Facebook';
+
+  // Auth - forgot password screen
+  static const String forgotTitle = 'Forgot Password';
+  static const String forgotSubtitle = 'Get your code';
+  static const String forgotDescription =
+      'Please enter the email address associated with your account.';
+  static const String recoverPasswordButton = 'Recover Password';
+  static const String forgotSuccess =
+      'If that email is registered, a recovery link is on its way.';
+  static const String forgotRememberPrefix = 'Remember your password?';
+
+  // Auth - form validation
+  static const String validatorRequired = 'This field is required.';
+  static const String validatorEmail = 'Enter a valid email address.';
+  static const String validatorPasswordShort =
+      'Password must be at least 8 characters.';
+  static const String validatorPasswordMatch = 'Passwords do not match.';
+
   // Student home screen
   static const String homeGreetingPrefix = 'Hello, ';
   static const String homeGreetingSuffix = '! 👋';
@@ -121,6 +150,87 @@ abstract final class AppStrings {
       "You'll need to sign in again to access your account.";
   static const String profileSignOutCancel = 'Cancel';
 
+  // Owner profile screen (reuses the shared profile* strings above)
+  static const String ownerProfileBilling = 'Billing';
+
+  // Owner dashboard screen
+  static const String dashboardGreetingPrefix = 'Welcome back, ';
+  static const String dashboardGreetingSuffix = ' 👋';
+  static const String dashboardSubtitle = "Here's how your centre is doing.";
+  static const String dashboardStatProfileViews = 'Profile Views';
+  static const String dashboardStatNewEnquiries = 'New Enquiries';
+  static const String dashboardStatRating = 'Avg. Rating';
+  static const String dashboardStatActiveStudents = 'Active Students';
+  static const String dashboardViewsChartTitle = 'Profile Views';
+  static const String dashboardViewsChartSubtitle = 'Last 7 days';
+  static const String dashboardQuickActions = 'Quick Actions';
+  static const String dashboardActionEditCenter = 'Edit Center';
+  static const String dashboardActionManageCourses = 'Manage Courses';
+  static const String dashboardActionViewEnquiries = 'View Enquiries';
+  static const String dashboardActionShareLink = 'Share Link';
+  static const String dashboardRecentEnquiries = 'Recent Enquiries';
+  static const String dashboardViewAll = 'View all';
+  static const String dashboardEnquiryNew = 'NEW';
+
+  // Owner enquiries - inbox
+  static const String enquiriesTitle = 'Enquiries';
+  static const String enquiriesSearchHint = 'Search enquiries...';
+  static const String enquiriesFilterAll = 'All';
+  static const String enquiriesFilterNew = 'New';
+  static const String enquiriesFilterReplied = 'Replied';
+  static const String enquiriesFilterArchived = 'Archived';
+  static const String enquiriesUnreadSuffix = 'unread';
+  static const String enquiriesNewBadge = 'NEW';
+  static const String enquiriesEmptyTitle = 'No enquiries here';
+  static const String enquiriesEmptySubtitle =
+      'When students reach out, their messages will appear here.';
+
+  // Owner manage-center - read view
+  static const String centerTabTitle = 'My Center';
+  static const String centerEdit = 'Edit';
+  static const String centerStatViews = 'Views';
+  static const String centerStatRating = 'Rating';
+  static const String centerStatReviews = 'Reviews';
+  static const String centerSectionAbout = 'About';
+  static const String centerSectionSubjects = 'Subjects Offered';
+  static const String centerSectionBoards = 'Boards / Curriculum';
+  static const String centerSectionTimings = 'Class Timings';
+  static const String centerSectionPhotos = 'Photos';
+  static const String centerSectionContact = 'Contact';
+  static const String centerSectionFees = 'Courses & Fees';
+  static const String centerTimingClosed = 'Closed';
+  static const String centerTimingTo = 'to';
+
+  // Owner manage-center - edit form
+  static const String centerEditTitle = 'Edit Center';
+  static const String centerSave = 'Save Changes';
+  static const String centerSavedSnack = 'Center details saved.';
+  static const String centerPhotoAdd = 'Add Photo';
+  static const String centerAddCourse = 'Add Course';
+  static const String centerOpenLabel = 'Open';
+  static const String centerFieldName = 'Center Name';
+  static const String centerFieldTagline = 'Tagline';
+  static const String centerFieldLocation = 'Location';
+  static const String centerFieldAddress = 'Address';
+  static const String centerFieldAbout = 'About';
+  static const String centerFieldPhone = 'Phone';
+  static const String centerFieldEmail = 'Email';
+  static const String centerFieldCourseName = 'Course name';
+  static const String centerFieldFee = 'Fee';
+
+  // Owner enquiries - detail
+  static const String enquiryReplyHint = 'Type your reply...';
+  static const String enquiryReplyJustNow = 'Just now';
+  static const String enquiryContactCall = 'Call';
+  static const String enquiryContactEmail = 'Email';
+  static const String enquiryActionArchive = 'Archive';
+  static const String enquiryActionUnarchive = 'Unarchive';
+  static const String enquiryStatusNew = 'New';
+  static const String enquiryStatusReplied = 'Replied';
+  static const String enquiryStatusArchived = 'Archived';
+  static const String enquiryConversationLabel = 'Conversation';
+  static const String enquiryNotFound = 'This enquiry is no longer available.';
+
   // Phase 1 stub messages
   static const String stubAuthNotImplemented =
       'Phase 1: auth backend not implemented yet.';
@@ -148,6 +258,37 @@ abstract final class AppStrings {
 
   // Teacher placeholder screens (Phase 1 - real UIs land per design later)
   static const String teacherComingSoon = 'Coming soon';
+
+  // Teacher profile - read view
+  static const String teacherProfileTitle = 'Profile';
+  static const String teacherProfileEdit = 'Edit';
+  static const String teacherStatusIndependent = 'Independent Tutor';
+  static const String teacherStatusAffiliatedPrefix = 'At ';
+  static const String teacherStatViews = 'Views';
+  static const String teacherStatStudents = 'Students';
+  static const String teacherStatRating = 'Rating';
+  static const String teacherStatResponse = 'Response';
+  static const String teacherSectionAbout = 'About';
+  static const String teacherSectionSubjects = 'Subjects & Expertise';
+  static const String teacherSectionRate = 'Rate & Experience';
+  static const String teacherRatePerHourSuffix = '/hr';
+  static const String teacherExperienceSuffix = 'yrs experience';
+  static const String teacherSettingsAvailability = 'Availability';
+  static const String teacherSettingsPayouts = 'Payouts';
+
+  // Teacher profile - edit form
+  static const String teacherEditTitle = 'Edit Profile';
+  static const String teacherFieldName = 'Name';
+  static const String teacherFieldHeadline = 'Headline';
+  static const String teacherFieldEmail = 'Email';
+  static const String teacherFieldBio = 'About';
+  static const String teacherFieldExpertise = 'Expertise / specialization';
+  static const String teacherFieldRate = 'Hourly rate (₹)';
+  static const String teacherFieldExperience = 'Years of experience';
+  static const String teacherFieldIndependent = 'Independent tutor';
+  static const String teacherFieldAffiliation = 'Affiliated center';
+  static const String teacherSavedSnack = 'Profile saved.';
+  static const String teacherSave = 'Save Changes';
 
   // Generic errors
   static const String errorNetwork =
