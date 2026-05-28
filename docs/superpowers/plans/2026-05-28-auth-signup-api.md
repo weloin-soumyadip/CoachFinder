@@ -157,7 +157,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 Create `test/features/auth/data/models/user_model_test.dart`:
 
 ```dart
-import 'package:coaching_app/features/auth/data/models/user_model.dart';
+import 'package:coachfinder/features/auth/data/models/user_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -392,7 +392,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 Create `test/features/auth/data/models/auth_response_model_test.dart`:
 
 ```dart
-import 'package:coaching_app/features/auth/data/models/auth_response_model.dart';
+import 'package:coachfinder/features/auth/data/models/auth_response_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -507,7 +507,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 Create `test/features/auth/data/models/register_request_model_test.dart`:
 
 ```dart
-import 'package:coaching_app/features/auth/data/models/register_request_model.dart';
+import 'package:coachfinder/features/auth/data/models/register_request_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
