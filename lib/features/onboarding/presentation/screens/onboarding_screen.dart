@@ -7,10 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/constants/hive_keys.dart';
 import '../../../../core/providers/role_provider.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/storage/hive_service_provider.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -89,8 +88,7 @@ class OnboardingScreen extends HookConsumerWidget {
     Future<void> handleContinue() async {
       final role = selectedRole.value;
       if (role == null) return;
-      final hive = ref.read(hiveServiceProvider);
-      await hive.settingsBox.put(HiveKeys.keyUserRole, role);
+      await LocalStorage.set(StorageKeys.userRole, role);
       ref.read(roleProvider.notifier).state = role;
       if (!context.mounted) return;
       context.goNamed(AppRoutes.login, extra: role);
