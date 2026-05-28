@@ -7,14 +7,15 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../core/constants/app_strings.dart';
-import '../../../../../core/constants/hive_keys.dart';
 import '../../../../../core/providers/role_provider.dart';
 import '../../../../../core/providers/theme_mode_provider.dart';
 import '../../../../../core/router/app_routes.dart';
-import '../../../../../core/storage/hive_service_provider.dart';
+import '../../../../../core/storage/local_storage.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../auth/data/providers/auth_providers.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../../home/data/mock_home_data.dart' show mockUser;
 import '../../data/mock_profile_data.dart';
 
@@ -34,10 +35,7 @@ class StudentProfileScreen extends HookConsumerWidget {
 
     void setThemeMode(ThemeMode mode) {
       ref.read(themeModeProvider.notifier).state = mode;
-      ref.read(hiveServiceProvider).settingsBox.put(
-            HiveKeys.keyThemeMode,
-            mode.name,
-          );
+      LocalStorage.set(StorageKeys.themeMode, mode.name);
     }
 
     void stub() {
@@ -69,10 +67,8 @@ class StudentProfileScreen extends HookConsumerWidget {
       );
       if (confirmed != true) return;
 
-      final hive = ref.read(hiveServiceProvider);
-      await hive.authBox.delete(HiveKeys.keyJwtToken);
-      await hive.authBox.delete(HiveKeys.keyCurrentUser);
-      await hive.settingsBox.delete(HiveKeys.keyUserRole);
+      await ref.read(authControllerProvider.notifier).logout();
+      await LocalStorage.remove(StorageKeys.userRole);
       ref.read(roleProvider.notifier).state = null;
       if (!context.mounted) return;
       context.goNamed(AppRoutes.onboarding);
@@ -84,7 +80,7 @@ class StudentProfileScreen extends HookConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sp32),
+          padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),

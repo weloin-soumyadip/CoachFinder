@@ -7,9 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../shared/layouts/adaptive_navigation.dart';
 import '../constants/app_strings.dart';
-import '../constants/hive_keys.dart';
 import '../providers/role_provider.dart';
-import '../storage/hive_service_provider.dart';
 import 'app_routes.dart';
 
 // Feature screens. These are placeholder Scaffolds at this point and will be
@@ -17,6 +15,7 @@ import 'app_routes.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/student/home/presentation/screens/home_screen.dart';
 import '../../features/student/search/presentation/screens/search_screen.dart';
 import '../../features/student/search/presentation/screens/filter_screen.dart';
@@ -26,13 +25,16 @@ import '../../features/student/saved/presentation/screens/saved_screen.dart';
 import '../../features/owner/dashboard/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/manage_center_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/create_center_screen.dart';
+import '../../features/owner/manage_center/presentation/screens/edit_center_screen.dart';
 import '../../features/owner/enquiry_inbox/presentation/screens/enquiry_inbox_screen.dart';
 import '../../features/owner/enquiry_inbox/presentation/screens/enquiry_detail_screen.dart';
+import '../../features/owner/profile/presentation/screens/owner_profile_screen.dart';
 import '../../features/teacher/home/presentation/screens/teacher_home_screen.dart';
 import '../../features/teacher/search/presentation/screens/teacher_search_screen.dart';
 import '../../features/teacher/enquiries/presentation/screens/teacher_enquiries_screen.dart';
 import '../../features/teacher/schedule/presentation/screens/teacher_schedule_screen.dart';
 import '../../features/teacher/profile/presentation/screens/teacher_profile_screen.dart';
+import '../../features/teacher/profile/presentation/screens/edit_teacher_profile_screen.dart';
 
 /// Builds the [GoRouter] used by the app.
 ///
@@ -55,6 +57,7 @@ abstract final class AppRouter {
     '/manage-center',
     '/enquiries',
     '/enquiry',
+    '/owner-profile',
   ];
   static const List<String> _teacherPrefixes = <String>[
     '/teacher-home',
@@ -85,31 +88,25 @@ abstract final class AppRouter {
       initialLocation: '/onboarding',
       debugLogDiagnostics: false,
       redirect: (BuildContext context, GoRouterState state) {
-        final hive = ref.read(hiveServiceProvider);
-        final token = hive.authBox.get(HiveKeys.keyJwtToken) as String?;
         final role = ref.read(roleProvider);
 
         final loc = state.matchedLocation;
         final isOnboarding = loc == '/onboarding';
-        final isAuthRoute = loc == '/login' || loc == '/register';
+        final isAuthRoute =
+            loc == '/login' || loc == '/register' || loc == '/forgot-password';
         final isStudentRoute = _matchesPrefix(loc, _studentPrefixes);
         final isOwnerRoute = _matchesPrefix(loc, _ownerPrefixes);
         final isTeacherRoute = _matchesPrefix(loc, _teacherPrefixes);
 
-        // No token: only the onboarding / auth flow is allowed.
-        if (token == null || token.isEmpty) {
+        // No role: only the onboarding / auth flow is allowed. The network layer
+        // clears the access token on 401, so a stale token without role is
+        // recovered the next time the user tries to use a protected endpoint.
+        if (role == null) {
           if (isOnboarding || isAuthRoute) return null;
           return '/onboarding';
         }
 
-        // Token but no role: impossible state - clear session and re-onboard.
-        if (role == null) {
-          hive.authBox.delete(HiveKeys.keyJwtToken);
-          hive.authBox.delete(HiveKeys.keyCurrentUser);
-          return '/onboarding';
-        }
-
-        // Token + role - kick out of onboarding / auth into the shell home.
+        // Has role - kick out of onboarding / auth into the shell home.
         if (isOnboarding || isAuthRoute) {
           return _homeFor(role);
         }
@@ -141,6 +138,11 @@ abstract final class AppRouter {
           name: AppRoutes.register,
           builder: (context, state) =>
               RegisterScreen(initialRole: state.extra as String?),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          name: AppRoutes.forgotPassword,
+          builder: (context, state) => const ForgotPasswordScreen(),
         ),
 
         // Student shell
@@ -203,6 +205,11 @@ abstract final class AppRouter {
                   name: AppRoutes.ownerCreateCenter,
                   builder: (context, state) => const CreateCenterScreen(),
                 ),
+                GoRoute(
+                  path: 'edit',
+                  name: AppRoutes.ownerEditCenter,
+                  builder: (context, state) => const EditCenterScreen(),
+                ),
               ],
             ),
             GoRoute(
@@ -216,6 +223,11 @@ abstract final class AppRouter {
               builder: (context, state) => EnquiryDetailScreen(
                 enquiryId: state.pathParameters['id'] ?? '',
               ),
+            ),
+            GoRoute(
+              path: '/owner-profile',
+              name: AppRoutes.ownerProfile,
+              builder: (context, state) => const OwnerProfileScreen(),
             ),
           ],
         ),
@@ -248,6 +260,13 @@ abstract final class AppRouter {
               path: '/teacher-profile',
               name: AppRoutes.teacherProfile,
               builder: (context, state) => const TeacherProfileScreen(),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: 'edit',
+                  name: AppRoutes.teacherEditProfile,
+                  builder: (context, state) => const EditTeacherProfileScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -319,8 +338,8 @@ class _StudentShell extends StatelessWidget {
   }
 }
 
-/// Adaptive-nav shell for the coaching-owner role. 3 tabs: Dashboard, Center,
-/// Enquiries. Same [AdaptiveNavigation] backing as [_StudentShell].
+/// Adaptive-nav shell for the coaching-owner role. 4 tabs: Dashboard, Center,
+/// Enquiries, Profile. Same [AdaptiveNavigation] backing as [_StudentShell].
 class _OwnerShell extends StatelessWidget {
   const _OwnerShell({required this.child});
 
@@ -342,11 +361,17 @@ class _OwnerShell extends StatelessWidget {
       selectedIcon: Icons.inbox,
       label: AppStrings.navEnquiries,
     ),
+    AdaptiveDestination(
+      icon: Icons.person_outline,
+      selectedIcon: Icons.person,
+      label: AppStrings.navProfile,
+    ),
   ];
 
   static int _indexFor(String loc) {
     if (loc.startsWith('/manage-center')) return 1;
     if (loc.startsWith('/enquiries') || loc.startsWith('/enquiry/')) return 2;
+    if (loc.startsWith('/owner-profile')) return 3;
     return 0; // `/dashboard`.
   }
 
@@ -358,6 +383,8 @@ class _OwnerShell extends StatelessWidget {
         context.goNamed(AppRoutes.ownerManageCenter);
       case 2:
         context.goNamed(AppRoutes.ownerEnquiryInbox);
+      case 3:
+        context.goNamed(AppRoutes.ownerProfile);
     }
   }
 
