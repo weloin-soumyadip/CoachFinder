@@ -6,11 +6,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 
-/// A Material 3 `TextFormField` with a subtle accent-tinted fill ([accent] at
-/// 6 % alpha) so the underlying [GlassPanel] still shows through while the
-/// field reads as part of the role's brand. A hairline `palette.borderSubtle`
-/// outline marks the field at rest; the outline + floating label tween to
-/// [accent] (defaults to `context.palette.primary`) when the field is focused.
+/// A Material 3 `TextFormField` with an accent-tinted fill ([accent] at
+/// 12 % alpha) so the field carries the role's brand color while the
+/// underlying [GlassPanel] still shows through. A hairline
+/// `palette.borderSubtle` outline marks the field at rest; the outline +
+/// floating label tween to [accent] (defaults to `context.palette.primary`)
+/// when the field is focused.
 ///
 /// Pass a [validator] (runs when the enclosing `Form` is validated); for
 /// password inputs pass `obscureText: true` and use [trailing] for the
@@ -71,7 +72,7 @@ class AuthFieldWidget extends StatelessWidget {
         hintText: hint,
         hintStyle: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
         filled: true,
-        fillColor: brand.withValues(alpha: 0.06),
+        fillColor: brand.withValues(alpha: 0.12),
         prefixIcon: Icon(icon, color: palette.textMuted, size: 20),
         suffixIcon: trailing,
         contentPadding: const EdgeInsets.symmetric(
