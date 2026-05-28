@@ -1,17 +1,18 @@
-/// Themed input field used by login and register forms.
+/// Themed input field used by the auth forms — neo "recessed well" styling.
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/neo_input_decoration.dart';
+import '../../../../shared/widgets/neo_surface.dart';
 
-/// Themed text input used by the auth screens.
-///
-/// Layout: a label row above the field, then a soft-filled rounded text field
-/// with a leading [icon]. For password inputs pass `obscureText: true` and use
-/// [trailing] to embed the visibility-toggle button. The label row can carry
-/// a right-aligned widget via [labelTrailing] (used for "Forgot Password?").
+/// A Material 3 `TextFormField` styled as a recessed neo well: the field sits
+/// inside a [NeoSurface] with `inset: true` so it reads as pressed-into the
+/// page. Pass a [validator] (runs when the enclosing `Form` is validated); for
+/// password inputs pass `obscureText: true` and use [trailing] for the
+/// visibility-toggle button.
 class AuthFieldWidget extends StatelessWidget {
   const AuthFieldWidget({
     super.key,
@@ -21,8 +22,9 @@ class AuthFieldWidget extends StatelessWidget {
     this.hint,
     this.obscureText = false,
     this.keyboardType,
+    this.textInputAction,
     this.trailing,
-    this.labelTrailing,
+    this.validator,
   });
 
   final String label;
@@ -31,68 +33,34 @@ class AuthFieldWidget extends StatelessWidget {
   final String? hint;
   final bool obscureText;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
   final Widget? trailing;
-  final Widget? labelTrailing;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    final radius = BorderRadius.circular(AppSpacing.sp12);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Text(
-              label,
-              style: textTheme.labelLarge?.copyWith(
-                color: palette.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (labelTrailing != null) ...<Widget>[
-              const Spacer(),
-              labelTrailing!,
-            ],
-          ],
+    return NeoSurface(
+      inset: true,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp12),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        validator: validator,
+        style: Theme.of(context)
+            .textTheme
+            .bodyLarge
+            ?.copyWith(color: palette.textPrimary),
+        decoration: neoInputDecoration(
+          context: context,
+          label: label,
+          icon: icon,
+          hint: hint,
+          suffix: trailing,
         ),
-        const SizedBox(height: AppSpacing.sp8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          style: textTheme.bodyLarge?.copyWith(color: palette.textPrimary),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: palette.inputFill,
-            hintText: hint,
-            hintStyle: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
-            prefixIcon: Icon(icon, color: palette.textMuted, size: 20),
-            suffixIcon: trailing,
-            border: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(
-                color: palette.primary,
-                width: 1.5,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sp16,
-              vertical: AppSpacing.sp16,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
