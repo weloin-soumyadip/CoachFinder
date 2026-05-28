@@ -84,7 +84,7 @@ abstract final class AppStrings {
   static const String validatorRequired = 'This field is required.';
   static const String validatorEmail = 'Enter a valid email address.';
   static const String validatorPasswordShort =
-      'Password must be at least 8 characters.';
+      'Password must be at least 6 characters.';
   static const String validatorPasswordMatch = 'Passwords do not match.';
 
   // Student home screen

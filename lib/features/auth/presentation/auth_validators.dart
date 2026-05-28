@@ -24,10 +24,10 @@ abstract final class AuthValidators {
     return pattern.hasMatch(value.trim()) ? null : AppStrings.validatorEmail;
   }
 
-  /// Required + minimum length of 8 characters.
+  /// Required + minimum length of 6 characters (matches backend register).
   static String? password(String? value) {
     if (value == null || value.isEmpty) return AppStrings.validatorRequired;
-    return value.length < 8 ? AppStrings.validatorPasswordShort : null;
+    return value.length < 6 ? AppStrings.validatorPasswordShort : null;
   }
 
   /// Required + must equal [original] (for confirm-password fields).
