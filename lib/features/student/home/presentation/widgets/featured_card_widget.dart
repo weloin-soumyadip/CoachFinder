@@ -21,8 +21,13 @@ class FeaturedCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
+    // Subtle bluish surface: brand blue blended into the surface (theme-aware).
+    final Color cardColor = Color.alphaBlend(
+      AppColors.studentPrimary.withValues(alpha: 0.06),
+      palette.surface,
+    );
     return Material(
-      color: palette.surface,
+      color: cardColor,
       borderRadius: BorderRadius.circular(AppSpacing.sp16),
       child: InkWell(
         onTap: onTap,
@@ -30,9 +35,11 @@ class FeaturedCardWidget extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.sp12),
           decoration: BoxDecoration(
-            color: palette.surface,
+            color: cardColor,
             borderRadius: BorderRadius.circular(AppSpacing.sp16),
-            border: Border.all(color: palette.borderSubtle),
+            border: Border.all(
+              color: AppColors.studentPrimary.withValues(alpha: 0.15),
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -47,15 +54,17 @@ class FeaturedCardWidget extends StatelessWidget {
                     Text(
                       coach.name,
                       style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         color: palette.textPrimary,
+                        letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       coach.role,
                       style: textTheme.bodySmall?.copyWith(
-                        color: palette.textMuted,
+                        color: palette.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sp8),
@@ -141,13 +150,18 @@ class _TagPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
+    // Tint the fixed pastel in dark mode so the pill darkens with the theme;
+    // light mode keeps the solid pastel.
+    final Color background =
+        dark ? tag.background.withValues(alpha: 0.24) : tag.background;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sp8,
         vertical: 3,
       ),
       decoration: BoxDecoration(
-        color: tag.background,
+        color: background,
         borderRadius: BorderRadius.circular(AppSpacing.sp4),
       ),
       child: Text(

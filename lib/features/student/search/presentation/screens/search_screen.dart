@@ -11,7 +11,7 @@ import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
-import '../../../home/data/mock_home_data.dart' show mockUser;
+import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../data/mock_search_data.dart';
 import '../widgets/institute_result_card.dart';
 import '../widgets/search_field_widget.dart';
@@ -87,18 +87,17 @@ class SearchScreen extends HookConsumerWidget {
             final cardWidth = (contentWidth - gap * (columns - 1)) / columns;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sp32),
+              padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const _TopBar(),
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sp16,
-                        ),
+                            horizontal: AppSpacing.sp16,
+                            vertical: AppSpacing.sp16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -136,49 +135,6 @@ class SearchScreen extends HookConsumerWidget {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-/// Top bar: CoachFinder wordmark + the signed-in user's avatar (matches Home).
-class _TopBar extends StatelessWidget {
-  const _TopBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final palette = context.palette;
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sp8,
-        vertical: AppSpacing.sp8,
-      ),
-      child: Row(
-        children: <Widget>[
-          Text(
-            AppStrings.appName,
-            style: textTheme.titleLarge?.copyWith(
-              color: palette.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sp8),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: palette.primaryTint,
-              child: Text(
-                mockUser.firstName[0],
-                style: textTheme.labelLarge?.copyWith(
-                  color: palette.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

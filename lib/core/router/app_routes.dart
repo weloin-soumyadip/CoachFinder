@@ -12,6 +12,7 @@ abstract final class AppRoutes {
   static const String onboarding = 'onboarding';
   static const String login = 'login';
   static const String register = 'register';
+  static const String forgotPassword = 'forgot-password';
 
   // Student
   static const String studentHome = 'student-home';
@@ -25,8 +26,10 @@ abstract final class AppRoutes {
   static const String ownerDashboard = 'owner-dashboard';
   static const String ownerManageCenter = 'owner-manage-center';
   static const String ownerCreateCenter = 'owner-create-center';
+  static const String ownerEditCenter = 'owner-edit-center';
   static const String ownerEnquiryInbox = 'owner-enquiry-inbox';
   static const String ownerEnquiryDetail = 'owner-enquiry-detail';
+  static const String ownerProfile = 'owner-profile';
 
   // Teacher
   static const String teacherHome = 'teacher-home';
@@ -34,6 +37,7 @@ abstract final class AppRoutes {
   static const String teacherEnquiries = 'teacher-enquiries';
   static const String teacherSchedule = 'teacher-schedule';
   static const String teacherProfile = 'teacher-profile';
+  static const String teacherEditProfile = 'teacher-edit-profile';
 }
 
 /// The shell-home route NAME a freshly-authenticated [role] should land on.

@@ -35,4 +35,16 @@ abstract final class AuthValidators {
     if (value == null || value.isEmpty) return AppStrings.validatorRequired;
     return value == original ? null : AppStrings.validatorPasswordMatch;
   }
+
+  /// Required + 7-15 digits (allows a leading `+` and inner spaces / dashes).
+  static String? phone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return AppStrings.validatorRequired;
+    }
+    final String digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 7 || digits.length > 15) {
+      return AppStrings.validatorPhone;
+    }
+    return null;
+  }
 }

@@ -56,11 +56,9 @@ abstract final class AppStrings {
   static const String alreadyHaveAccount = 'Already have an account?';
   static const String signIn = 'Sign In';
 
-  // Auth - sign-up name fields
-  static const String fieldFirstName = 'First Name';
-  static const String hintFirstName = 'John';
-  static const String fieldLastName = 'Last Name';
-  static const String hintLastName = 'Doe';
+  // Auth - sign-up extra fields
+  static const String fieldPhone = 'Phone Number';
+  static const String hintPhone = '9876543210';
 
   // Auth - shared (redesign)
   static const String authOr = 'Or';
@@ -83,6 +81,7 @@ abstract final class AppStrings {
   static const String validatorPasswordShort =
       'Password must be at least 6 characters.';
   static const String validatorPasswordMatch = 'Passwords do not match.';
+  static const String validatorPhone = 'Enter a valid phone number.';
 
   // Student home screen
   static const String homeGreetingPrefix = 'Hello, ';

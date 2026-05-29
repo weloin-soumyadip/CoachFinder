@@ -38,9 +38,9 @@ class RegisterScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final firstNameCtrl = useTextEditingController();
-    final lastNameCtrl = useTextEditingController();
+    final nameCtrl = useTextEditingController();
     final emailCtrl = useTextEditingController();
+    final phoneCtrl = useTextEditingController();
     final passwordCtrl = useTextEditingController();
     final confirmCtrl = useTextEditingController();
     final passwordVisible = useState(false);
@@ -78,9 +78,9 @@ class RegisterScreen extends HookConsumerWidget {
       final String resolvedRole =
           ref.read(roleProvider) ?? initialRole ?? roleStudent;
       await ref.read(authControllerProvider.notifier).register(
-            firstName: firstNameCtrl.text,
-            lastName: lastNameCtrl.text,
+            name: nameCtrl.text,
             email: emailCtrl.text,
+            phone: phoneCtrl.text,
             password: passwordCtrl.text,
             role: resolvedRole,
           );
@@ -127,35 +127,15 @@ class RegisterScreen extends HookConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Expanded(
-                                  child: AuthFieldWidget(
-                                    label: AppStrings.fieldFirstName,
-                                    hint: AppStrings.hintFirstName,
-                                    icon: Icons.person_outline,
-                                    controller: firstNameCtrl,
-                                    keyboardType: TextInputType.name,
-                                    textInputAction: TextInputAction.next,
-                                    validator: AuthValidators.notEmpty,
-                                    accent: accent,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sp8),
-                                Expanded(
-                                  child: AuthFieldWidget(
-                                    label: AppStrings.fieldLastName,
-                                    hint: AppStrings.hintLastName,
-                                    icon: Icons.person_outline,
-                                    controller: lastNameCtrl,
-                                    keyboardType: TextInputType.name,
-                                    textInputAction: TextInputAction.next,
-                                    validator: AuthValidators.notEmpty,
-                                    accent: accent,
-                                  ),
-                                ),
-                              ],
+                            AuthFieldWidget(
+                              label: AppStrings.fieldFullName,
+                              hint: AppStrings.hintFullName,
+                              icon: Icons.person_outline,
+                              controller: nameCtrl,
+                              keyboardType: TextInputType.name,
+                              textInputAction: TextInputAction.next,
+                              validator: AuthValidators.notEmpty,
+                              accent: accent,
                             ),
                             const SizedBox(height: AppSpacing.sp12),
                             AuthFieldWidget(
@@ -166,6 +146,17 @@ class RegisterScreen extends HookConsumerWidget {
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
                               validator: AuthValidators.email,
+                              accent: accent,
+                            ),
+                            const SizedBox(height: AppSpacing.sp12),
+                            AuthFieldWidget(
+                              label: AppStrings.fieldPhone,
+                              hint: AppStrings.hintPhone,
+                              icon: Icons.phone_outlined,
+                              controller: phoneCtrl,
+                              keyboardType: TextInputType.phone,
+                              textInputAction: TextInputAction.next,
+                              validator: AuthValidators.phone,
                               accent: accent,
                             ),
                             const SizedBox(height: AppSpacing.sp12),

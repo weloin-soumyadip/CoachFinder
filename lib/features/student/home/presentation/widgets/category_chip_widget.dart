@@ -17,8 +17,16 @@ class CategoryChipWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
+    // Bluish chip via the brand tint (theme-aware: light blue / dark blue). The
+    // icon keeps the topic's hue, lightened in dark mode for contrast.
+    final Color background = palette.primaryTint;
+    final Color iconColor = dark
+        ? HSLColor.fromColor(topic.iconColor).withLightness(0.72).toColor()
+        : topic.iconColor;
     return Material(
-      color: topic.background,
+      color: background,
       borderRadius: BorderRadius.circular(AppSpacing.sp16),
       child: InkWell(
         onTap: onTap,
@@ -33,13 +41,14 @@ class CategoryChipWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(topic.icon, color: topic.iconColor, size: 24),
+              Icon(topic.icon, color: iconColor, size: 24),
               const SizedBox(height: AppSpacing.sp12),
               Text(
                 topic.label,
                 style: textTheme.labelLarge?.copyWith(
-                  color: context.palette.textPrimary,
-                  fontWeight: FontWeight.w600,
+                  color: palette.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],

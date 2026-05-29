@@ -14,6 +14,10 @@ abstract final class AppColors {
   /// Light tint of [studentPrimary], used for icon-chip backgrounds.
   static const Color studentPrimaryTint = Color(0xFFE3EBFC);
 
+  /// Darker shade of [studentPrimary] - the second stop of the auth hero
+  /// gradient (brand element; white-on-blue reads in both themes).
+  static const Color studentPrimaryDark = Color(0xFF1444A8);
+
   /// Soft neutral fill used for form input backgrounds in the auth flow.
   static const Color inputFill = Color(0xFFEEF1F6);
 

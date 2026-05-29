@@ -92,20 +92,20 @@ class AuthController extends StateNotifier<AuthState> {
   /// and flips state through Loading → Authenticated. On failure flips to
   /// Error with the backend's verbatim message.
   Future<void> register({
-    required String firstName,
-    required String lastName,
+    required String name,
     required String email,
     required String password,
+    required String phone,
     required String role,
   }) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
-      final name = '${firstName.trim()} ${lastName.trim()}'.trim();
       final request = RegisterRequest(
         userType: role,
-        name: name,
+        name: name.trim(),
         email: email.trim().toLowerCase(),
         password: password,
+        phone: phone.trim(),
       );
       final response = await _repository.register(request);
       await LocalStorage.set(StorageKeys.userRole, role);

@@ -1,10 +1,32 @@
-/// Adaptive navigation shell - NavigationBar on mobile, NavigationRail on wider screens.
+/// Adaptive navigation shell - floating bottom bar on mobile, floating side
+/// rail on wider screens.
 library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_palette.dart';
+import '../../core/theme/app_spacing.dart';
+
+/// Width at/above which the side rail replaces the bottom bar.
+const double kAdaptiveNavBreakpoint = 768;
+
+/// Height of the floating bottom-bar card (excludes its margin + safe inset).
+const double _kFloatingBarHeight = 64;
+
+/// Bottom padding a scrollable screen inside [AdaptiveNavigation] should add so
+/// its last content (or a pinned bottom element) clears the **floating bottom
+/// bar**, which overlays the body (`extendBody`). On wide layouts the rail is
+/// on the side, so only the system inset matters there.
+double floatingNavClearance(BuildContext context) {
+  final double systemInset = MediaQuery.viewPaddingOf(context).bottom;
+  final bool wide = MediaQuery.sizeOf(context).width >= kAdaptiveNavBreakpoint;
+  if (wide) return AppSpacing.sp24 + systemInset;
+  return _kFloatingBarHeight + AppSpacing.sp12 + AppSpacing.sp24 + systemInset;
+}
+
 /// One navigation destination, expressed in a UI-agnostic shape so the same
-/// list can power either a [NavigationBar] or a [NavigationRail].
+/// list can power either the floating bottom bar or the side rail.
 class AdaptiveDestination {
   const AdaptiveDestination({
     required this.icon,
@@ -18,21 +40,21 @@ class AdaptiveDestination {
   /// Icon shown when the destination IS the current selection.
   final IconData selectedIcon;
 
-  /// User-facing label.
+  /// User-facing label. Retained for semantics / future use; both layouts are
+  /// currently icon-only.
   final String label;
 }
 
-/// Switches between bottom [NavigationBar] (compact widths) and side
-/// [NavigationRail] (wider widths) using a single configurable [breakpoint].
+/// Switches between a floating bottom bar (compact widths) and a floating side
+/// rail (wider widths) using a single configurable [breakpoint].
 ///
 /// The caller owns selection state and routing - this widget only renders the
 /// chrome and forwards taps via [onDestinationSelected].
 ///
-/// The bar/rail background is transparent (it blends with the surface behind
-/// it). Colours are derived from the active [ColorScheme] so icons and labels
-/// stay visible in both themes - dark in light mode, light in dark mode. The
-/// selected destination reads via its filled icon and a bolder, full-strength
-/// `onSurface` tone; unselected ones use the muted `onSurfaceVariant` tone.
+/// Both layouts are **floating, rounded `palette.surface` cards** (icon-only,
+/// no labels or indicator pill) with a soft shadow: the active destination is
+/// the full-strength `palette.textPrimary` filled icon, inactive ones the faint
+/// `palette.iconFaint` outlined icon, cross-faded on change.
 class AdaptiveNavigation extends StatelessWidget {
   const AdaptiveNavigation({
     super.key,
@@ -40,7 +62,7 @@ class AdaptiveNavigation extends StatelessWidget {
     required this.destinations,
     required this.selectedIndex,
     required this.onDestinationSelected,
-    this.breakpoint = 768,
+    this.breakpoint = kAdaptiveNavBreakpoint,
   })  : assert(destinations.length >= 2,
             'AdaptiveNavigation requires at least 2 destinations.'),
         assert(selectedIndex >= 0, 'selectedIndex must be non-negative.');
@@ -59,51 +81,24 @@ class AdaptiveNavigation extends StatelessWidget {
   /// navigate, update local state, etc.
   final ValueChanged<int> onDestinationSelected;
 
-  /// Width (in logical pixels) at which the layout switches from
-  /// [NavigationBar] (below) to [NavigationRail] (at or above).
+  /// Width (in logical pixels) at which the layout switches from the floating
+  /// bottom bar (below) to the floating side rail (at or above).
   final double breakpoint;
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final useRail = width >= breakpoint;
-    final colorScheme = Theme.of(context).colorScheme;
 
     if (useRail) {
       return Scaffold(
         body: SafeArea(
           child: Row(
             children: <Widget>[
-              NavigationRail(
+              _FloatingSideRail(
+                destinations: destinations,
                 selectedIndex: selectedIndex,
                 onDestinationSelected: onDestinationSelected,
-                labelType: NavigationRailLabelType.all,
-                backgroundColor: Colors.transparent,
-                useIndicator: false,
-                selectedIconTheme: IconThemeData(color: colorScheme.onSurface),
-                unselectedIconTheme:
-                    IconThemeData(color: colorScheme.onSurfaceVariant),
-                selectedLabelTextStyle: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                ),
-                unselectedLabelTextStyle: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
-                destinations: <NavigationRailDestination>[
-                  for (final d in destinations)
-                    NavigationRailDestination(
-                      icon: Icon(d.icon),
-                      selectedIcon: Icon(d.selectedIcon),
-                      label: Text(d.label),
-                    ),
-                ],
-              ),
-              VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: colorScheme.outlineVariant,
               ),
               Expanded(child: child),
             ],
@@ -112,49 +107,178 @@ class AdaptiveNavigation extends StatelessWidget {
       );
     }
 
+    // extendBody lets the page extend *behind* the floating bar (so it overlays
+    // content). The Scaffold reports the bar's height as the body's bottom
+    // MediaQuery padding, which screens add to their scroll padding so the last
+    // items still clear the bar.
     return Scaffold(
+      extendBody: true,
       body: child,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: Colors.transparent,
-          indicatorColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>(
-            (Set<WidgetState> states) => IconThemeData(
-              color: states.contains(WidgetState.selected)
-                  ? colorScheme.onSurface
-                  : colorScheme.onSurfaceVariant,
+      bottomNavigationBar: _FloatingBottomBar(
+        destinations: destinations,
+        selectedIndex: selectedIndex,
+        onDestinationSelected: onDestinationSelected,
+      ),
+    );
+  }
+}
+
+/// Floating, rounded surface card holding the icon-only bottom destinations.
+class _FloatingBottomBar extends StatelessWidget {
+  const _FloatingBottomBar({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
+
+  final List<AdaptiveDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.sp16,
+          0,
+          AppSpacing.sp16,
+          AppSpacing.sp12,
+        ),
+        child: Container(
+          height: _kFloatingBarHeight,
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(AppSpacing.sp24),
+            boxShadow: _navShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppSpacing.sp24),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Row(
+                children: <Widget>[
+                  for (int i = 0; i < destinations.length; i++)
+                    Expanded(
+                      child: _NavIcon(
+                        destination: destinations[i],
+                        selected: i == selectedIndex,
+                        onTap: () => onDestinationSelected(i),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-            (Set<WidgetState> states) {
-              final bool selected = states.contains(WidgetState.selected);
-              return TextStyle(
-                fontSize: 12,
-                color: selected
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              );
-            },
+        ),
+      ),
+    );
+  }
+}
+
+/// Floating, rounded surface card holding the icon-only destinations as a
+/// vertical pill on the left of wide layouts.
+class _FloatingSideRail extends StatelessWidget {
+  const _FloatingSideRail({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
+
+  final List<AdaptiveDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sp16,
+        AppSpacing.sp16,
+        AppSpacing.sp8,
+        AppSpacing.sp16,
+      ),
+      child: Container(
+        width: 68,
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.sp24),
+          boxShadow: _navShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppSpacing.sp24),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (int i = 0; i < destinations.length; i++) ...<Widget>[
+                    if (i > 0) const SizedBox(height: AppSpacing.sp8),
+                    SizedBox(
+                      height: 56,
+                      child: _NavIcon(
+                        destination: destinations[i],
+                        selected: i == selectedIndex,
+                        onTap: () => onDestinationSelected(i),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
-        child: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: onDestinationSelected,
-          elevation: 0,
-          destinations: <NavigationDestination>[
-            for (final d in destinations)
-              NavigationDestination(
-                icon: Icon(d.icon),
-                selectedIcon: Icon(d.selectedIcon),
-                label: d.label,
-                // Empty string suppresses the hover/long-press tooltip (a null
-                // tooltip would fall back to showing the label).
-                tooltip: '',
-              ),
-          ],
+      ),
+    );
+  }
+}
+
+/// Soft shadow shared by both floating nav cards.
+final List<BoxShadow> _navShadow = <BoxShadow>[
+  BoxShadow(
+    color: AppColors.neutralBlack.withValues(alpha: 0.08),
+    blurRadius: 20,
+    offset: const Offset(0, 4),
+  ),
+];
+
+/// A single icon-only destination: full-strength filled icon when [selected],
+/// faint outlined icon otherwise, cross-faded on change. No label or indicator.
+/// Sizes to its parent (wrap in [Expanded] within a Row, or a sized box in a
+/// Column).
+class _NavIcon extends StatelessWidget {
+  const _NavIcon({
+    required this.destination,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AdaptiveDestination destination;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return InkWell(
+      onTap: onTap,
+      child: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (Widget child, Animation<double> animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: Icon(
+            selected ? destination.selectedIcon : destination.icon,
+            key: ValueKey<bool>(selected),
+            color: selected ? palette.textPrimary : palette.iconFaint,
+            size: selected ? 26 : 24,
+          ),
         ),
       ),
     );

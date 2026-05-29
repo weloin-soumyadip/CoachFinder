@@ -2,12 +2,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/layouts/adaptive_navigation.dart';
+import '../../../../../shared/widgets/entrance_fade_slide.dart';
 import '../../data/mock_home_data.dart';
 import '../widgets/category_chip_widget.dart';
 import '../widgets/featured_card_widget.dart';
@@ -16,85 +19,155 @@ import '../widgets/featured_card_widget.dart';
 ///
 /// Phase 1: all content is rendered from `mock_home_data.dart`. When the
 /// backend lands the fixture imports are swapped for a controller-backed
-/// `AsyncValue<HomeFeed>` and the layout stays unchanged.
+/// `AsyncValue<HomeFeed>` and the layout stays unchanged. Sections fade and
+/// slide in with a staggered entrance on first build (one
+/// `useAnimationController` + per-section [Interval]s via [EntranceFadeSlide]),
+/// the Personalized-path ring animates from 0, and content is capped + centered
+/// for wide windows.
 class HomeScreen extends HookConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final entrance = useAnimationController(
+      duration: const Duration(milliseconds: 900),
+    );
+    useEffect(() {
+      entrance.forward();
+      return null;
+    }, const <Object?>[]);
+
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: context.palette.background,
+      backgroundColor: palette.background,
       body: SafeArea(
         bottom: false,
         child: Stack(
           children: <Widget>[
-            SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sp32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  const _TopBar(),
-                  const SizedBox(height: AppSpacing.sp16),
-                  const _Greeting(),
-                  const SizedBox(height: AppSpacing.sp16),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sp16,
-                    ),
-                    child: _NextSessionCard(session: mockNextSession),
-                  ),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionHeader(
-                    title: AppStrings.homeTrendingTopics,
-                    trailing: GestureDetector(
-                      onTap: () {},
-                      child: Text(
-                        AppStrings.homeSeeAll,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: context.palette.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: SingleChildScrollView(
+                  padding:
+                      EdgeInsets.only(bottom: floatingNavClearance(context)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      EntranceFadeSlide(
+                        animation: entrance,
+                        start: 0.0,
+                        end: 0.5,
+                        child: const _TopBar(),
                       ),
-                    ),
+                      const SizedBox(height: AppSpacing.sp16),
+                      EntranceFadeSlide(
+                        animation: entrance,
+                        start: 0.06,
+                        end: 0.56,
+                        child: const _Greeting(),
+                      ),
+                      const SizedBox(height: AppSpacing.sp16),
+                      EntranceFadeSlide(
+                        animation: entrance,
+                        start: 0.14,
+                        end: 0.64,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sp16,
+                          ),
+                          child: _NextSessionCard(session: mockNextSession),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      EntranceFadeSlide(
+                        animation: entrance,
+                        start: 0.24,
+                        end: 0.74,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            _SectionHeader(
+                              title: AppStrings.homeTrendingTopics,
+                              trailing: GestureDetector(
+                                onTap: () {},
+                                child: Text(
+                                  AppStrings.homeSeeAll,
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: palette.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sp12),
+                            _TopicsRail(topics: mockTopics),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      EntranceFadeSlide(
+                        animation: entrance,
+                        start: 0.34,
+                        end: 0.84,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            _SectionHeader(
+                              title: AppStrings.homeRecommendedForYou,
+                              trailing: Icon(
+                                Icons.tune,
+                                color: palette.textSecondary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sp12),
+                            _RecommendedList(coaches: mockCoaches),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      EntranceFadeSlide(
+                        animation: entrance,
+                        start: 0.44,
+                        end: 0.94,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: const <Widget>[
+                            _SectionHeader(
+                                title: AppStrings.homePersonalizedPath),
+                            SizedBox(height: AppSpacing.sp12),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sp16,
+                              ),
+                              child: _PersonalizedPathCard(path: mockPath),
+                            ),
+                            SizedBox(height: AppSpacing.sp12),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sp16,
+                              ),
+                              child: _ActionTilesRow(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _TopicsRail(topics: mockTopics),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionHeader(
-                    title: AppStrings.homeRecommendedForYou,
-                    trailing: Icon(
-                      Icons.tune,
-                      color: context.palette.textSecondary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _RecommendedList(coaches: mockCoaches),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionHeader(
-                    title: AppStrings.homePersonalizedPath,
-                  ),
-                  const SizedBox(height: AppSpacing.sp12),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sp16,
-                    ),
-                    child: _PersonalizedPathCard(path: mockPath),
-                  ),
-                  const SizedBox(height: AppSpacing.sp12),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sp16,
-                    ),
-                    child: _ActionTilesRow(),
-                  ),
-                ],
+                ),
               ),
             ),
-            const Positioned(
+            Positioned(
               right: AppSpacing.sp16,
-              bottom: AppSpacing.sp16,
-              child: _ChatFab(),
+              bottom: floatingNavClearance(context),
+              child: EntranceFadeSlide(
+                animation: entrance,
+                start: 0.6,
+                end: 1.0,
+                child: const _ChatFab(),
+              ),
             ),
           ],
         ),
@@ -117,10 +190,6 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          // IconButton(
-          //   icon: const Icon(Icons.menu, color: AppColors.studentPrimary),
-          //   onPressed: () {},
-          // ),
           Text(
             AppStrings.appName,
             style: textTheme.titleLarge?.copyWith(
@@ -128,21 +197,21 @@ class _TopBar extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sp8),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: palette.primaryTint,
-              child: Text(
-                mockUser.firstName[0],
-                style: textTheme.labelLarge?.copyWith(
-                  color: palette.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
+          // const Spacer(),
+          // Padding(
+          //   padding: const EdgeInsets.only(right: AppSpacing.sp8),
+          //   child: CircleAvatar(
+          //     radius: 18,
+          //     backgroundColor: palette.primaryTint,
+          //     child: Text(
+          //       mockUser.firstName[0],
+          //       style: textTheme.labelLarge?.copyWith(
+          //         color: palette.primary,
+          //         fontWeight: FontWeight.w700,
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );
@@ -192,7 +261,14 @@ class _NextSessionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sp16),
       decoration: BoxDecoration(
-        color: AppColors.studentPrimary,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            AppColors.studentPrimary,
+            AppColors.studentPrimaryDark,
+          ],
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.sp16),
       ),
       child: Column(
@@ -233,7 +309,8 @@ class _NextSessionCard extends StatelessWidget {
             session.title,
             style: textTheme.headlineSmall?.copyWith(
               color: AppColors.neutralWhite,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: AppSpacing.sp8),
@@ -397,6 +474,8 @@ class _PersonalizedPathCard extends StatelessWidget {
   }
 }
 
+/// Circular progress ring that animates its arc + percentage up from 0 on first
+/// build.
 class _ProgressRing extends StatelessWidget {
   const _ProgressRing({required this.percent});
 
@@ -408,24 +487,31 @@ class _ProgressRing extends StatelessWidget {
     return SizedBox(
       width: 56,
       height: 56,
-      child: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          CircularProgressIndicator(
-            value: percent / 100,
-            strokeWidth: 5,
-            backgroundColor: palette.borderSubtle,
-            valueColor:
-                const AlwaysStoppedAnimation<Color>(AppColors.priceGreen),
-          ),
-          Text(
-            '$percent%',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: palette.textPrimary,
-                ),
-          ),
-        ],
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: percent / 100),
+        duration: const Duration(milliseconds: 900),
+        curve: Curves.easeOutCubic,
+        builder: (BuildContext context, double value, _) {
+          return Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              CircularProgressIndicator(
+                value: value,
+                strokeWidth: 5,
+                backgroundColor: palette.borderSubtle,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.priceGreen),
+              ),
+              Text(
+                '${(value * 100).round()}%',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: palette.textPrimary,
+                    ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

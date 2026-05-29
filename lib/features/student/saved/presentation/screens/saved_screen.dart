@@ -10,6 +10,7 @@ import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../../search/data/mock_search_data.dart';
 import '../../../search/presentation/widgets/institute_result_card.dart';
 import '../../../search/presentation/widgets/search_field_widget.dart';
@@ -93,7 +94,7 @@ class SavedScreen extends HookConsumerWidget {
             final cardWidth = (contentWidth - gap * (columns - 1)) / columns;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sp32),
+              padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1100),
