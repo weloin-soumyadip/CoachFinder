@@ -11,6 +11,10 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
+import '../../../../../shared/widgets/brand_backdrop.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
+import '../../../../../shared/widgets/neo_button.dart';
+import '../../../../../shared/widgets/neo_surface.dart';
 import '../../data/controllers/manage_center_provider.dart';
 import '../../data/mock_center_data.dart';
 import '../widgets/image_upload_widget.dart';
@@ -32,89 +36,97 @@ class ManageCenterScreen extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.sp16,
-                AppSpacing.sp8,
-                AppSpacing.sp16,
-                floatingNavClearance(context),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Text(
-                        AppStrings.centerTabTitle,
-                        style: textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: palette.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            context.pushNamed(AppRoutes.ownerEditCenter),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text(AppStrings.centerEdit),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.ownerAccent,
-                          side: const BorderSide(color: AppColors.ownerAccent),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.sp12),
+      body: BrandBackdrop(
+        orbColors: const <Color>[AppColors.ownerAccent],
+        child: SafeArea(
+          bottom: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.sp16,
+                  AppSpacing.sp8,
+                  AppSpacing.sp16,
+                  floatingNavClearance(context),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    GlassPanel(
+                      padding: const EdgeInsets.all(AppSpacing.sp16),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              AppStrings.centerTabTitle,
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: palette.textPrimary,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sp16),
-                  _StatsStrip(center: center),
-                  const SizedBox(height: AppSpacing.sp16),
-                  _IdentityCard(center: center),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionAbout),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _Card(
-                    child: Text(
-                      center.about,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: palette.textSecondary,
-                        height: 1.45,
+                          const SizedBox(width: AppSpacing.sp12),
+                          NeoButton(
+                            onPressed: () =>
+                                context.pushNamed(AppRoutes.ownerEditCenter),
+                            accent: AppColors.ownerAccent,
+                            height: 44,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const <Widget>[
+                                Icon(Icons.edit_outlined, size: 18),
+                                SizedBox(width: AppSpacing.sp8),
+                                Text(AppStrings.centerEdit),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionSubjects),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _ReadChips(labels: center.subjects),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionBoards),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _ReadChips(labels: center.boards),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionTimings),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _TimingsCard(timings: center.timings),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionPhotos),
-                  const SizedBox(height: AppSpacing.sp12),
-                  ImageUploadWidget(photos: center.photos),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionContact),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _ContactCard(center: center),
-                  const SizedBox(height: AppSpacing.sp24),
-                  _SectionTitle(title: AppStrings.centerSectionFees),
-                  const SizedBox(height: AppSpacing.sp12),
-                  _FeesCard(fees: center.fees),
-                ],
+                    const SizedBox(height: AppSpacing.sp24),
+                    _StatsStrip(center: center),
+                    const SizedBox(height: AppSpacing.sp16),
+                    _IdentityCard(center: center),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionAbout),
+                    const SizedBox(height: AppSpacing.sp12),
+                    _Card(
+                      child: Text(
+                        center.about,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: palette.textSecondary,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionSubjects),
+                    const SizedBox(height: AppSpacing.sp12),
+                    _ReadChips(labels: center.subjects),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionBoards),
+                    const SizedBox(height: AppSpacing.sp12),
+                    _ReadChips(labels: center.boards),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionTimings),
+                    const SizedBox(height: AppSpacing.sp12),
+                    _TimingsCard(timings: center.timings),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionPhotos),
+                    const SizedBox(height: AppSpacing.sp12),
+                    ImageUploadWidget(photos: center.photos),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionContact),
+                    const SizedBox(height: AppSpacing.sp12),
+                    _ContactCard(center: center),
+                    const SizedBox(height: AppSpacing.sp24),
+                    _SectionTitle(title: AppStrings.centerSectionFees),
+                    const SizedBox(height: AppSpacing.sp12),
+                    _FeesCard(fees: center.fees),
+                  ],
+                ),
               ),
             ),
           ),
@@ -132,14 +144,8 @@ class _StatsStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
+    return NeoSurface(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: palette.borderSubtle),
-      ),
       child: IntrinsicHeight(
         child: Row(
           children: <Widget>[
@@ -502,25 +508,18 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// Bordered surface container used for most sections.
+/// Outset neomorphic surface used for most independent content sections.
 class _Card extends StatelessWidget {
   const _Card({required this.child, this.padding});
 
   final Widget child;
-  final EdgeInsetsGeometry? padding;
+  final EdgeInsets? padding;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
-      width: double.infinity,
+    return NeoSurface(
       padding: padding ?? const EdgeInsets.all(AppSpacing.sp16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: palette.borderSubtle),
-      ),
-      child: child,
+      child: SizedBox(width: double.infinity, child: child),
     );
   }
 }

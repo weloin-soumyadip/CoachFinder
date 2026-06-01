@@ -12,6 +12,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
 import '../../data/mock_search_data.dart';
 import '../widgets/institute_result_card.dart';
 import '../widgets/search_field_widget.dart';
@@ -69,71 +70,86 @@ class SearchScreen extends HookConsumerWidget {
     final resultCount = teachers.length + institutes.length;
 
     return Scaffold(
-      backgroundColor: context.palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Responsive grid sizing, measured on the content area so it is
-            // correct inside the desktop NavigationRail too. Content is capped
-            // and centred so cards don't stretch on very wide windows.
-            final cappedWidth =
-                constraints.maxWidth > 1100 ? 1100.0 : constraints.maxWidth;
-            final contentWidth = cappedWidth - AppSpacing.sp16 * 2;
-            final rawColumns = (contentWidth / 320).floor();
-            final columns =
-                rawColumns < 1 ? 1 : (rawColumns > 3 ? 3 : rawColumns);
-            const gap = AppSpacing.sp16;
-            final cardWidth = (contentWidth - gap * (columns - 1)) / columns;
+      body: DecoratedBox(
+        // Subtle vertical brand-tint wash at the top that fades into the flat
+        // background within the first ~40% of the viewport, matching the Home
+        // tab's backdrop.
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              context.palette.primaryTint,
+              context.palette.background,
+            ],
+            stops: const <double>[0.0, 0.4],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Responsive grid sizing, measured on the content area so it is
+              // correct inside the desktop NavigationRail too. Content is capped
+              // and centred so cards don't stretch on very wide windows.
+              final cappedWidth =
+                  constraints.maxWidth > 1100 ? 1100.0 : constraints.maxWidth;
+              final contentWidth = cappedWidth - AppSpacing.sp16 * 2;
+              final rawColumns = (contentWidth / 320).floor();
+              final columns =
+                  rawColumns < 1 ? 1 : (rawColumns > 3 ? 3 : rawColumns);
+              const gap = AppSpacing.sp16;
+              final cardWidth = (contentWidth - gap * (columns - 1)) / columns;
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sp16,
-                            vertical: AppSpacing.sp16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            SearchFieldWidget(
-                              controller: controller,
-                              onChanged: (v) => query.value = v,
-                              onClear: clear,
-                            ),
-                            const SizedBox(height: AppSpacing.sp16),
-                            _SegmentControl(
-                              selected: segment.value,
-                              onChanged: (s) => segment.value = s,
-                            ),
-                            const SizedBox(height: AppSpacing.sp24),
-                            if (showResting)
-                              _RestingState(onTermSelected: setQuery)
-                            else
-                              _Results(
-                                count: resultCount,
-                                segment: segment.value,
-                                teachers: teachers,
-                                institutes: institutes,
-                                cardWidth: cardWidth,
-                                gap: gap,
-                                onFilters: () =>
-                                    context.goNamed(AppRoutes.studentFilter),
+              return SingleChildScrollView(
+                padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sp16,
+                              vertical: AppSpacing.sp16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              SearchFieldWidget(
+                                controller: controller,
+                                onChanged: (v) => query.value = v,
+                                onClear: clear,
                               ),
-                          ],
+                              const SizedBox(height: AppSpacing.sp16),
+                              _SegmentControl(
+                                selected: segment.value,
+                                onChanged: (s) => segment.value = s,
+                              ),
+                              const SizedBox(height: AppSpacing.sp24),
+                              if (showResting)
+                                _RestingState(onTermSelected: setQuery)
+                              else
+                                _Results(
+                                  count: resultCount,
+                                  segment: segment.value,
+                                  teachers: teachers,
+                                  institutes: institutes,
+                                  cardWidth: cardWidth,
+                                  gap: gap,
+                                  onFilters: () =>
+                                      context.goNamed(AppRoutes.studentFilter),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -194,21 +210,16 @@ class _SegmentPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Material(
-      color: selected ? AppColors.studentPrimary : palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp12),
+    // Shared tap target + label. The settled (selected) pill is a filled brand
+    // fill so selection stays unmistakable; unselected pills are frosted glass.
+    final Widget inner = Material(
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.sp12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp12),
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.sp12),
-            border: Border.all(
-              color: selected ? AppColors.studentPrimary : palette.border,
-            ),
-          ),
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -219,6 +230,18 @@ class _SegmentPill extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (selected) {
+      return Material(
+        color: AppColors.studentPrimary,
+        borderRadius: BorderRadius.circular(AppSpacing.sp12),
+        child: inner,
+      );
+    }
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp12,
+      child: inner,
     );
   }
 }
@@ -377,27 +400,28 @@ class _CategoryPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp24),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sp24),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sp16,
-            vertical: AppSpacing.sp8,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.sp24),
-            border: Border.all(color: palette.border),
-          ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: palette.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+    // Frosted-glass browse chip. GlassPanel supplies the translucent fill +
+    // hairline; a transparent Material/InkWell on top keeps the tap ripple.
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp24,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.sp24),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sp16,
+              vertical: AppSpacing.sp8,
+            ),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: palette.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
           ),
         ),
       ),

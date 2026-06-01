@@ -5,7 +5,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'core/constants/app_strings.dart';
 import 'core/providers/role_provider.dart';
@@ -13,6 +14,7 @@ import 'core/providers/theme_mode_provider.dart';
 import 'core/router/router_provider.dart';
 import 'core/storage/local_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/data/providers/auth_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,14 +37,23 @@ Future<void> main() async {
   );
 }
 
-/// Root [MaterialApp] for CoachFinder. Reads the [GoRouter] from
-/// [routerProvider] so any rebuild driven by upstream providers triggers a
-/// router refresh.
-class CoachFinderApp extends ConsumerWidget {
+/// Root [MaterialApp] for CoachFinder. Wires the [GoRouter] from
+/// [routerProvider] and kicks off the auth controller's launch-time
+/// `/me` rehydration via [useEffect].
+class CoachFinderApp extends HookConsumerWidget {
   const CoachFinderApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Touch (don't watch) the auth controller so its `bootstrap()` fires
+    // once, without subscribing this widget to every AuthState transition.
+    // The router redirect reads `roleProvider` directly on each navigation,
+    // so rehydration changes propagate without rebuilding `MaterialApp`.
+    useEffect(() {
+      ref.read(authControllerProvider);
+      return null;
+    }, const <Object?>[]);
+
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
     return MaterialApp.router(

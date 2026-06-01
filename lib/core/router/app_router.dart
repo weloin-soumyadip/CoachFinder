@@ -14,6 +14,7 @@ import 'app_routes.dart';
 // Feature screens. These are placeholder Scaffolds at this point and will be
 // fleshed out in Step 4.
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -33,6 +34,7 @@ import '../../features/owner/profile/presentation/screens/owner_profile_screen.d
 import '../../features/teacher/home/presentation/screens/teacher_home_screen.dart';
 import '../../features/teacher/search/presentation/screens/teacher_search_screen.dart';
 import '../../features/teacher/enquiries/presentation/screens/teacher_enquiries_screen.dart';
+import '../../features/teacher/enquiries/presentation/screens/teacher_enquiry_detail_screen.dart';
 import '../../features/teacher/schedule/presentation/screens/teacher_schedule_screen.dart';
 import '../../features/teacher/profile/presentation/screens/teacher_profile_screen.dart';
 import '../../features/teacher/profile/presentation/screens/edit_teacher_profile_screen.dart';
@@ -86,9 +88,15 @@ abstract final class AppRouter {
   /// Build the configured [GoRouter] instance. Called from `routerProvider`.
   static GoRouter build(Ref ref) {
     return GoRouter(
-      initialLocation: '/onboarding',
+      initialLocation: '/splash',
       debugLogDiagnostics: false,
       redirect: (BuildContext context, GoRouterState state) {
+        final loc = state.matchedLocation;
+        // The splash route owns its own navigation — it waits for the
+        // auth controller's bootstrap to settle, then `goNamed`s the user
+        // to the right first screen. Never redirect away from it.
+        if (loc == '/splash') return null;
+
         final role = ref.read(roleProvider);
         // Sync proxy for "has a real authenticated session": currentUserId is
         // written by AuthController.signIn/register on success and removed by
@@ -97,7 +105,6 @@ abstract final class AppRouter {
         // skip past auth by selecting a role.
         final hasSession = LocalStorage.containsKey(StorageKeys.currentUserId);
 
-        final loc = state.matchedLocation;
         final isOnboarding = loc == '/onboarding';
         final isAuthRoute =
             loc == '/login' || loc == '/register' || loc == '/forgot-password';
@@ -135,6 +142,11 @@ abstract final class AppRouter {
         return null;
       },
       routes: <RouteBase>[
+        GoRoute(
+          path: '/splash',
+          name: AppRoutes.splash,
+          builder: (context, state) => const SplashScreen(),
+        ),
         GoRoute(
           path: '/onboarding',
           name: AppRoutes.onboarding,
@@ -263,6 +275,15 @@ abstract final class AppRouter {
               path: '/teacher-enquiries',
               name: AppRoutes.teacherEnquiries,
               builder: (context, state) => const TeacherEnquiriesScreen(),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: ':id',
+                  name: AppRoutes.teacherEnquiryDetail,
+                  builder: (context, state) => TeacherEnquiryDetailScreen(
+                    enquiryId: state.pathParameters['id'] ?? '',
+                  ),
+                ),
+              ],
             ),
             GoRoute(
               path: '/teacher-schedule',

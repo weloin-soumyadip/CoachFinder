@@ -1,7 +1,8 @@
 /// HTTP base URL, timeouts, and backend endpoint path constants.
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 /// Backend connection configuration. Single source of truth for the base URL
 /// the [ApiClient] dials and the path constants every repository quotes.
@@ -27,7 +28,7 @@ class ApiConfig {
     if (override.isNotEmpty) return override;
     if (kIsWeb) return 'http://localhost:$_devPort/api';
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:$_devPort/api';
+      return 'http://192.168.1.106:$_devPort/api';
     }
     return 'http://localhost:$_devPort/api';
   }
@@ -44,4 +45,7 @@ class ApiConfig {
   static const String authRefresh = '/auth/refresh';
   static const String authLogout = '/auth/logout';
   static const String authMe = '/auth/me';
+
+  // Student endpoint paths.
+  static const String studentsDashboard = '/students/dashboard';
 }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
 
 /// A filled, rounded text field with a leading search icon and an optional
 /// clear button. The caller owns the [controller] and reacts to [onChanged];
@@ -30,44 +31,50 @@ class SearchFieldWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasText = controller.text.isNotEmpty;
     final palette = context.palette;
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      textInputAction: TextInputAction.search,
-      style: Theme.of(context).textTheme.bodyLarge,
-      decoration: InputDecoration(
-        hintText: hintText ?? AppStrings.searchHint,
-        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: palette.textMuted,
+    // Frosted-glass search field: GlassPanel supplies the translucent fill +
+    // hairline; the TextField itself is transparent (no opaque fill/border) so
+    // the glass shows through. A primary focus ring is kept for affordance.
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp12,
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: Theme.of(context).textTheme.bodyLarge,
+        decoration: InputDecoration(
+          hintText: hintText ?? AppStrings.searchHint,
+          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: palette.textMuted,
+              ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: palette.textMuted,
+          ),
+          suffixIcon: hasText
+              ? IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    color: palette.textMuted,
+                    size: 20,
+                  ),
+                  onPressed: onClear,
+                )
+              : null,
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.sp16,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.sp12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.sp12),
+            borderSide: BorderSide(
+              color: palette.primary,
+              width: 1.5,
             ),
-        prefixIcon: Icon(
-          Icons.search,
-          color: palette.textMuted,
-        ),
-        suffixIcon: hasText
-            ? IconButton(
-                icon: Icon(
-                  Icons.close,
-                  color: palette.textMuted,
-                  size: 20,
-                ),
-                onPressed: onClear,
-              )
-            : null,
-        filled: true,
-        fillColor: palette.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.sp16,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.sp12),
-          borderSide: BorderSide(color: palette.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.sp12),
-          borderSide: BorderSide(
-            color: palette.primary,
-            width: 1.5,
           ),
         ),
       ),

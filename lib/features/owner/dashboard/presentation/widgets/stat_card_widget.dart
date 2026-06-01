@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/widgets/neo_surface.dart';
 import '../../data/mock_dashboard_data.dart';
 
-/// A bordered surface card showing one headline metric ([DashboardStat]): a
+/// An embossed neomorphic card showing one headline metric ([DashboardStat]): a
 /// tinted accent icon, the big value, its label, and an optional caption whose
 /// colour/arrow reflect the [StatTrend].
 class StatCardWidget extends StatelessWidget {
@@ -20,13 +21,7 @@ class StatCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sp16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: palette.borderSubtle),
-      ),
+    return NeoSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

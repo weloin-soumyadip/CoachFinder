@@ -7,6 +7,7 @@ import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
 import '../../../../../shared/widgets/saved_bookmark_button.dart';
 import '../../data/mock_search_data.dart';
 
@@ -31,91 +32,55 @@ class TeacherResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.sp16),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.sp16),
-            border: Border.all(color: palette.borderSubtle),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _Avatar(
-                    initial: teacher.initial,
-                    color: teacher.avatarColor,
-                    online: teacher.online,
-                  ),
-                  const SizedBox(width: AppSpacing.sp12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Expanded(
-                              child: Text(
-                                teacher.name,
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: palette.textPrimary,
+    // Frosted-glass card: GlassPanel supplies the translucent fill + hairline;
+    // a transparent Material/InkWell on top keeps the tap ripple.
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp16,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.sp16),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sp16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _Avatar(
+                      initial: teacher.initial,
+                      color: teacher.avatarColor,
+                      online: teacher.online,
+                    ),
+                    const SizedBox(width: AppSpacing.sp12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Expanded(
+                                child: Text(
+                                  teacher.name,
+                                  style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.sp8),
-                            _RatingBadge(rating: teacher.rating),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          teacher.title,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: palette.textMuted,
+                              const SizedBox(width: AppSpacing.sp8),
+                              _RatingBadge(rating: teacher.rating),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sp12),
-              Wrap(
-                spacing: AppSpacing.sp8,
-                runSpacing: AppSpacing.sp8,
-                children: <Widget>[
-                  for (final tag in teacher.tags) _TagPill(label: tag),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sp12),
-              Divider(height: 1, color: palette.borderSubtle),
-              const SizedBox(height: AppSpacing.sp12),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        children: <InlineSpan>[
-                          TextSpan(
-                            text: '\$${teacher.sessionPrice}',
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: palette.textPrimary,
-                            ),
-                          ),
-                          TextSpan(
-                            text: AppStrings.searchPerSessionSuffix,
+                          const SizedBox(height: 2),
+                          Text(
+                            teacher.title,
                             style: textTheme.bodySmall?.copyWith(
                               color: palette.textMuted,
                             ),
@@ -123,11 +88,47 @@ class TeacherResultCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                  if (onUnsave != null) SavedBookmarkButton(onTap: onUnsave!),
-                ],
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sp12),
+                Wrap(
+                  spacing: AppSpacing.sp8,
+                  runSpacing: AppSpacing.sp8,
+                  children: <Widget>[
+                    for (final tag in teacher.tags) _TagPill(label: tag),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sp12),
+                Divider(height: 1, color: palette.borderSubtle),
+                const SizedBox(height: AppSpacing.sp12),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: <InlineSpan>[
+                            TextSpan(
+                              text: '\$${teacher.sessionPrice}',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: palette.textPrimary,
+                              ),
+                            ),
+                            TextSpan(
+                              text: AppStrings.searchPerSessionSuffix,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: palette.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (onUnsave != null) SavedBookmarkButton(onTap: onUnsave!),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

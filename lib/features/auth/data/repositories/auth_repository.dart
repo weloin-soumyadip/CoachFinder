@@ -8,6 +8,7 @@ import '../../../../core/api/api_response.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../models/auth_response_model.dart';
 import '../models/login_request_model.dart';
+import '../models/me_response_model.dart';
 import '../models/register_request_model.dart';
 
 /// Feature-specific exception thrown by [AuthRepository] on failure.
@@ -92,6 +93,33 @@ class AuthRepository {
       rethrow;
     } catch (_) {
       throw AuthException('Something went wrong while signing in');
+    }
+  }
+
+  /// Calls `GET /api/auth/me` to validate the cached access token and
+  /// re-fetch the current user. Returns the parsed [MeResponse] (user +
+  /// userType). The [ApiClient] interceptor automatically attaches the
+  /// cached bearer token to the request.
+  ///
+  /// On a 401 the interceptor also clears the cached tokens + currentUserId
+  /// before this method's `AuthException` is thrown — callers should treat
+  /// `code == '401'` as "session invalid, drop to login".
+  Future<MeResponse> getCurrentUser() async {
+    try {
+      final apiResponse = await _apiClient.get<MeResponse>(
+        ApiConfig.authMe,
+        fromJson: (json) => MeResponse.fromJson(json),
+      );
+      if (!apiResponse.success || apiResponse.data == null) {
+        throw AuthException(apiResponse.message ?? 'Failed to load profile');
+      }
+      return apiResponse.data!;
+    } on ApiError catch (e) {
+      throw AuthException(e.message, code: e.statusCode?.toString());
+    } on AuthException {
+      rethrow;
+    } catch (_) {
+      throw AuthException('Something went wrong while loading your profile');
     }
   }
 

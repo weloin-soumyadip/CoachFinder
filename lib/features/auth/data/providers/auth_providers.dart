@@ -151,6 +151,70 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// Launch-time rehydration. Validates the cached access token against
+  /// `GET /api/auth/me`:
+  ///
+  ///   - **no cached `currentUserId`** → flip to `unauthenticated`. The
+  ///     router keeps the user on onboarding / login as appropriate.
+  ///   - **`/me` succeeds with a registerable role** → flip to
+  ///     `authenticated` with the fresh [User] and mirror the server's
+  ///     authoritative `userType` into [LocalStorage] + [roleProvider].
+  ///     The user lands in the shell matching the role the server reports,
+  ///     overriding any locally cached role if the two disagree.
+  ///   - **`/me` returns `userType: 'admin'`** → the app has no admin
+  ///     surface; treat as unauthenticated (clear session, drop to login).
+  ///   - **`/me` returns 401** → token expired / revoked. The [ApiClient]
+  ///     interceptor has already cleared the secure-storage tokens and
+  ///     `currentUserId`; we then flip to `unauthenticated` so the next
+  ///     navigation bounces to login.
+  ///   - **any other failure (network, timeout)** → keep the cached
+  ///     session intact (offline mode). Status drops back to `initial`
+  ///     but the in-memory `user` / `role` (if any) are preserved via
+  ///     `copyWith`. The next authenticated user action will surface the
+  ///     real error.
+  ///
+  /// Fired once when [authControllerProvider] is first read; no callers
+  /// need to invoke this directly.
+  Future<void> bootstrap() async {
+    final cachedUserId = LocalStorage.get<String>(StorageKeys.currentUserId);
+    if (cachedUserId == null) {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+      return;
+    }
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final me = await _repository.getCurrentUser();
+      const Set<String> registerableRoles = <String>{
+        roleStudent,
+        roleOwner,
+        roleTeacher,
+      };
+      if (!registerableRoles.contains(me.userType)) {
+        // No app surface exists for admin / unknown roles. Drop the session.
+        await _repository.logout();
+        await LocalStorage.remove(StorageKeys.currentUserId);
+        state = const AuthState(status: AuthStatus.unauthenticated);
+        return;
+      }
+      await LocalStorage.set(StorageKeys.userRole, me.userType);
+      await LocalStorage.set(StorageKeys.currentUserId, me.user.id);
+      _ref.read(roleProvider.notifier).state = me.userType;
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: me.user,
+        role: me.userType,
+      );
+    } on AuthException catch (e) {
+      if (e.code == '401') {
+        await _repository.logout();
+        await LocalStorage.remove(StorageKeys.currentUserId);
+        state = const AuthState(status: AuthStatus.unauthenticated);
+      } else {
+        state = state.copyWith(status: AuthStatus.initial);
+      }
+    }
+  }
+
   /// Local-only sign-out: clears tokens + `currentUserId` (preserves the
   /// role so re-login lands on the same shell) + drops the state to
   /// Unauthenticated.
@@ -168,9 +232,15 @@ class AuthController extends StateNotifier<AuthState> {
 }
 
 /// The active auth state — consumed by RegisterScreen, OwnerProfileScreen,
-/// and the router.
+/// and the router. The controller's [AuthController.bootstrap] fires once on
+/// creation, so the first read of this provider kicks off the launch-time
+/// `/me` rehydration in the background.
 final StateNotifierProvider<AuthController, AuthState> authControllerProvider =
     StateNotifierProvider<AuthController, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthController(repository, ref);
+  final controller = AuthController(repository, ref);
+  // Fire-and-forget: validates the cached access token + refreshes the User
+  // from /api/auth/me. Errors are handled inside `bootstrap` itself.
+  controller.bootstrap();
+  return controller;
 });

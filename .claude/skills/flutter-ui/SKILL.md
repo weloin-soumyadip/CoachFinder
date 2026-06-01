@@ -48,6 +48,22 @@ account / profile, **720** for feeds / lists / forms.
 
 ## Non-negotiable conventions
 
+- **Responsive by default — never overflow.** Every layout must adapt to its
+  width and never throw a RenderFlex overflow on any screen (phone → wide web).
+  - Text in any bounded box (cards, chips, list rows, app bars) gets
+    `maxLines` + `overflow: TextOverflow.ellipsis`. Never let a label decide a
+    box's size unbounded.
+  - A child that must share a row's width goes in `Expanded` / `Flexible`, not
+    a fixed `width:`. Reserve fixed `width:` for items inside a horizontal
+    scroller.
+  - Fixed `height:` on a card/chip must fit its *worst-case* content (e.g. a
+    two-line label), or the text must be capped so it can't exceed it.
+  - Rows / rails of cards adapt: use `LayoutBuilder` to **fill the row when the
+    items fit, fall back to a horizontal scroller when they don't** (see the
+    responsive rail pattern below), or use `Wrap` when multi-row is acceptable.
+  - Always cap + center wide content (see "Capped & centered" above). Verify
+    the screen at a narrow phone width AND a wide (≥ 1000 px) web window before
+    claiming done.
 - **No hardcoded values.** Strings → `AppStrings`. Colours → `context.palette.*`
   or `AppColors.*`. Sizes / spacing → `AppSpacing.*`. Motion / blur / shadow
   numerics → `AppEffects.*`. Never inline a hex literal, a `Duration` for an
@@ -132,6 +148,38 @@ semantic `success` / `warning` / `error` / `info`; `neutralWhite`, `neutralBlack
   `palette.background`.
 
 ## Copy-paste component patterns
+
+**Responsive card rail** (fill the row when items fit, scroll when they don't)
+```dart
+LayoutBuilder(
+  builder: (context, constraints) {
+    const double minItem = 120, gap = AppSpacing.sp12, h = 108;
+    final int n = items.length;
+    final double available = constraints.maxWidth - AppSpacing.sp16 * 2;
+    final bool fits = n > 0 && n * minItem + (n - 1) * gap <= available;
+    if (fits) {
+      return SizedBox(height: h, child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp16),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: <Widget>[
+          for (int i = 0; i < n; i++) ...<Widget>[
+            if (i > 0) const SizedBox(width: gap),
+            Expanded(child: ItemCard(item: items[i])),   // null width → fills
+          ],
+        ]),
+      ));
+    }
+    return SizedBox(height: h, child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sp16),
+      itemCount: n,
+      separatorBuilder: (_, __) => const SizedBox(width: gap),
+      itemBuilder: (context, i) => ItemCard(item: items[i], width: minItem),
+    ));
+  },
+)
+// ItemCard: `final double? width;` → `Container(width: width, …)`; cap its label
+// with maxLines + ellipsis so a fixed-height card can never overflow.
+```
 
 **Brand backdrop** (auth, onboarding, hero screens)
 ```dart

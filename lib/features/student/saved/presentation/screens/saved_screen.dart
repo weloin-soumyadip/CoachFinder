@@ -11,6 +11,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
 import '../../../search/data/mock_search_data.dart';
 import '../../../search/presentation/widgets/institute_result_card.dart';
 import '../../../search/presentation/widgets/search_field_widget.dart';
@@ -76,78 +77,93 @@ class SavedScreen extends HookConsumerWidget {
     final total = visibleCoachings.length + visibleTutors.length;
 
     return Scaffold(
-      backgroundColor: context.palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            // Responsive grid sizing, measured on the content area so it stays
-            // correct inside the desktop NavigationRail. Content is capped and
-            // centred so cards don't stretch on very wide windows.
-            final cappedWidth =
-                constraints.maxWidth > 1100 ? 1100.0 : constraints.maxWidth;
-            final contentWidth = cappedWidth - AppSpacing.sp16 * 2;
-            final rawColumns = (contentWidth / 320).floor();
-            final columns =
-                rawColumns < 1 ? 1 : (rawColumns > 3 ? 3 : rawColumns);
-            const gap = AppSpacing.sp16;
-            final cardWidth = (contentWidth - gap * (columns - 1)) / columns;
+      body: DecoratedBox(
+        // Subtle vertical brand-tint wash at the top that fades into the flat
+        // background within the first ~40% of the viewport, matching the Home
+        // and Search tabs' backdrop.
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              context.palette.primaryTint,
+              context.palette.background,
+            ],
+            stops: const <double>[0.0, 0.4],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              // Responsive grid sizing, measured on the content area so it stays
+              // correct inside the desktop NavigationRail. Content is capped and
+              // centred so cards don't stretch on very wide windows.
+              final cappedWidth =
+                  constraints.maxWidth > 1100 ? 1100.0 : constraints.maxWidth;
+              final contentWidth = cappedWidth - AppSpacing.sp16 * 2;
+              final rawColumns = (contentWidth / 320).floor();
+              final columns =
+                  rawColumns < 1 ? 1 : (rawColumns > 3 ? 3 : rawColumns);
+              const gap = AppSpacing.sp16;
+              final cardWidth = (contentWidth - gap * (columns - 1)) / columns;
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sp16,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        const SizedBox(height: AppSpacing.sp8),
-                        Text(
-                          AppStrings.savedTitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: context.palette.textPrimary,
-                              ),
-                        ),
-                        const SizedBox(height: AppSpacing.sp16),
-                        SearchFieldWidget(
-                          controller: controller,
-                          hintText: AppStrings.savedSearchHint,
-                          onChanged: (String v) => query.value = v,
-                          onClear: clear,
-                        ),
-                        const SizedBox(height: AppSpacing.sp16),
-                        _FilterControl(
-                          selected: filter.value,
-                          onChanged: (SavedFilter f) => filter.value = f,
-                        ),
-                        const SizedBox(height: AppSpacing.sp24),
-                        if (total == 0)
-                          const _SavedEmpty()
-                        else
-                          _SavedList(
-                            count: total,
-                            coachings: visibleCoachings,
-                            tutors: visibleTutors,
-                            cardWidth: cardWidth,
-                            gap: gap,
-                            onRemoveCoaching: removeCoaching,
-                            onRemoveTutor: removeTutor,
+              return SingleChildScrollView(
+                padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1100),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sp16,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          const SizedBox(height: AppSpacing.sp8),
+                          Text(
+                            AppStrings.savedTitle,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: context.palette.textPrimary,
+                                ),
                           ),
-                      ],
+                          const SizedBox(height: AppSpacing.sp16),
+                          SearchFieldWidget(
+                            controller: controller,
+                            hintText: AppStrings.savedSearchHint,
+                            onChanged: (String v) => query.value = v,
+                            onClear: clear,
+                          ),
+                          const SizedBox(height: AppSpacing.sp16),
+                          _FilterControl(
+                            selected: filter.value,
+                            onChanged: (SavedFilter f) => filter.value = f,
+                          ),
+                          const SizedBox(height: AppSpacing.sp24),
+                          if (total == 0)
+                            const _SavedEmpty()
+                          else
+                            _SavedList(
+                              count: total,
+                              coachings: visibleCoachings,
+                              tutors: visibleTutors,
+                              cardWidth: cardWidth,
+                              gap: gap,
+                              onRemoveCoaching: removeCoaching,
+                              onRemoveTutor: removeTutor,
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -208,21 +224,16 @@ class _FilterPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Material(
-      color: selected ? AppColors.studentPrimary : palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp12),
+    // Shared tap target + label. The settled (selected) pill is a filled brand
+    // fill so selection stays unmistakable; unselected pills are frosted glass.
+    final Widget inner = Material(
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.sp12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp12),
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.sp12),
-            border: Border.all(
-              color: selected ? AppColors.studentPrimary : palette.border,
-            ),
-          ),
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -233,6 +244,18 @@ class _FilterPill extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (selected) {
+      return Material(
+        color: AppColors.studentPrimary,
+        borderRadius: BorderRadius.circular(AppSpacing.sp12),
+        child: inner,
+      );
+    }
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp12,
+      child: inner,
     );
   }
 }

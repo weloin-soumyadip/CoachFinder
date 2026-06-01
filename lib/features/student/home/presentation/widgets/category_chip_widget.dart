@@ -7,12 +7,24 @@ import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../data/mock_home_data.dart';
 
-/// Single entry in the horizontally-scrolling "Trending Topics" rail.
+/// Single entry in the "Trending Topics" rail.
+///
+/// [width] is honoured when the rail scrolls (fixed-size chips); pass null to
+/// let the chip fill its parent (e.g. when wrapped in an [Expanded] so the rail
+/// spreads chips evenly across a wide row).
 class CategoryChipWidget extends StatelessWidget {
-  const CategoryChipWidget({super.key, required this.topic, this.onTap});
+  const CategoryChipWidget({
+    super.key,
+    required this.topic,
+    this.onTap,
+    this.width,
+  });
 
   final TrendingTopic topic;
   final VoidCallback? onTap;
+
+  /// Fixed chip width, or null to fill the available space.
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +44,23 @@ class CategoryChipWidget extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.sp16),
         child: Container(
-          width: 130,
+          width: width,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.sp16,
-            vertical: AppSpacing.sp16,
+            vertical: AppSpacing.sp12,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(topic.icon, color: iconColor, size: 24),
-              const SizedBox(height: AppSpacing.sp12),
+              const SizedBox(height: AppSpacing.sp8),
+              // Cap at two lines + ellipsis so a long label can never overflow
+              // the chip's bounded height on a narrow chip.
               Text(
                 topic.label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: textTheme.labelLarge?.copyWith(
                   color: palette.textPrimary,
                   fontWeight: FontWeight.w700,

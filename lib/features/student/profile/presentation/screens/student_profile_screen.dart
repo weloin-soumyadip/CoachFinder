@@ -16,6 +16,7 @@ import '../../../../auth/data/providers/auth_providers.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
 import '../../../home/data/mock_home_data.dart' show mockUser;
 import '../../data/mock_profile_data.dart';
 
@@ -76,60 +77,73 @@ class StudentProfileScreen extends HookConsumerWidget {
 
     final palette = context.palette;
     return Scaffold(
-      backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sp16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const SizedBox(height: AppSpacing.sp8),
-                    Text(
-                      AppStrings.profileTitle,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: palette.textPrimary,
-                              ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp16),
-                    _ProfileHeader(onEdit: stub),
-                    const SizedBox(height: AppSpacing.sp24),
-                    const _SectionHeader(title: AppStrings.profileAppearance),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _AppearanceSelector(
-                      selected: themeMode,
-                      onChanged: setThemeMode,
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    const _SectionHeader(title: AppStrings.profileSettings),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _SettingsCard(onTap: stub),
-                    const SizedBox(height: AppSpacing.sp24),
-                    OutlinedButton.icon(
-                      onPressed: handleSignOut,
-                      icon: const Icon(Icons.logout),
-                      label: const Text(AppStrings.profileSignOut),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.sp16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.sp12),
+      body: DecoratedBox(
+        // Subtle vertical brand-tint wash at the top that fades into the flat
+        // background within the first ~40% of the viewport, matching the Home,
+        // Search, and Saved tabs' backdrop.
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[palette.primaryTint, palette.background],
+            stops: const <double>[0.0, 0.4],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sp16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const SizedBox(height: AppSpacing.sp8),
+                      Text(
+                        AppStrings.profileTitle,
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: palette.textPrimary,
+                                ),
+                      ),
+                      const SizedBox(height: AppSpacing.sp16),
+                      _ProfileHeader(onEdit: stub),
+                      const SizedBox(height: AppSpacing.sp24),
+                      const _SectionHeader(title: AppStrings.profileAppearance),
+                      const SizedBox(height: AppSpacing.sp12),
+                      _AppearanceSelector(
+                        selected: themeMode,
+                        onChanged: setThemeMode,
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      const _SectionHeader(title: AppStrings.profileSettings),
+                      const SizedBox(height: AppSpacing.sp12),
+                      _SettingsCard(onTap: stub),
+                      const SizedBox(height: AppSpacing.sp24),
+                      OutlinedButton.icon(
+                        onPressed: handleSignOut,
+                        icon: const Icon(Icons.logout),
+                        label: const Text(AppStrings.profileSignOut),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.sp16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.sp12),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -150,13 +164,10 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return Container(
+    // Frosted-glass identity card.
+    return GlassPanel(
       padding: const EdgeInsets.all(AppSpacing.sp16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: palette.borderSubtle),
-      ),
+      radius: AppSpacing.sp16,
       child: Column(
         children: <Widget>[
           CircleAvatar(
@@ -268,20 +279,15 @@ class _AppearancePill extends StatelessWidget {
     final palette = context.palette;
     final Color foreground =
         selected ? AppColors.neutralWhite : palette.textSecondary;
-    return Material(
-      color: selected ? AppColors.studentPrimary : palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp12),
+    // Shared tap target + icon/label. The settled (selected) pill is a filled
+    // brand fill so selection stays unmistakable; unselected pills are glass.
+    final Widget inner = Material(
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.sp12),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.sp12),
-            border: Border.all(
-              color: selected ? AppColors.studentPrimary : palette.border,
-            ),
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -299,6 +305,18 @@ class _AppearancePill extends StatelessWidget {
         ),
       ),
     );
+    if (selected) {
+      return Material(
+        color: AppColors.studentPrimary,
+        borderRadius: BorderRadius.circular(AppSpacing.sp12),
+        child: inner,
+      );
+    }
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp12,
+      child: inner,
+    );
   }
 }
 
@@ -310,14 +328,11 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: palette.borderSubtle),
-      ),
+    // Frosted-glass settings card; the rows inside stay flat (one BackdropFilter
+    // for the whole card, never per row).
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp16,
       child: Column(
         children: <Widget>[
           _SettingsRow(

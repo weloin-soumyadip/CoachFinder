@@ -9,6 +9,7 @@ abstract final class AppRoutes {
   AppRoutes._();
 
   // Entry / auth
+  static const String splash = 'splash';
   static const String onboarding = 'onboarding';
   static const String login = 'login';
   static const String register = 'register';
@@ -35,6 +36,7 @@ abstract final class AppRoutes {
   static const String teacherHome = 'teacher-home';
   static const String teacherSearch = 'teacher-search';
   static const String teacherEnquiries = 'teacher-enquiries';
+  static const String teacherEnquiryDetail = 'teacher-enquiry-detail';
   static const String teacherSchedule = 'teacher-schedule';
   static const String teacherProfile = 'teacher-profile';
   static const String teacherEditProfile = 'teacher-edit-profile';

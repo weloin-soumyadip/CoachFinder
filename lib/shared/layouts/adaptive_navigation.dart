@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
+import '../widgets/glass_panel.dart';
 
 /// Width at/above which the side rail replaces the bottom bar.
 const double kAdaptiveNavBreakpoint = 768;
@@ -123,7 +124,9 @@ class AdaptiveNavigation extends StatelessWidget {
   }
 }
 
-/// Floating, rounded surface card holding the icon-only bottom destinations.
+/// Floating, rounded frosted-glass card holding the icon-only bottom
+/// destinations: a [GlassPanel] (translucent fill + backdrop blur) under a
+/// subtle [_navShadow], with the icon row filling the fixed bar height.
 class _FloatingBottomBar extends StatelessWidget {
   const _FloatingBottomBar({
     required this.destinations,
@@ -137,7 +140,6 @@ class _FloatingBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     return SafeArea(
       top: false,
       child: Padding(
@@ -147,28 +149,33 @@ class _FloatingBottomBar extends StatelessWidget {
           AppSpacing.sp16,
           AppSpacing.sp12,
         ),
-        child: Container(
-          height: _kFloatingBarHeight,
+        child: DecoratedBox(
+          // Glass clips the fill/blur to the radius; the shadow must sit on an
+          // unclipped ancestor so it casts *outside* the rounded glass edge.
           decoration: BoxDecoration(
-            color: palette.surface,
             borderRadius: BorderRadius.circular(AppSpacing.sp24),
             boxShadow: _navShadow,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppSpacing.sp24),
-            child: Material(
-              type: MaterialType.transparency,
-              child: Row(
-                children: <Widget>[
-                  for (int i = 0; i < destinations.length; i++)
-                    Expanded(
-                      child: _NavIcon(
-                        destination: destinations[i],
-                        selected: i == selectedIndex,
-                        onTap: () => onDestinationSelected(i),
+          child: SizedBox(
+            height: _kFloatingBarHeight,
+            // Zero padding so the icon row fills the full fixed bar height.
+            child: GlassPanel(
+              padding: EdgeInsets.zero,
+              radius: AppSpacing.sp24,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Row(
+                  children: <Widget>[
+                    for (int i = 0; i < destinations.length; i++)
+                      Expanded(
+                        child: _NavIcon(
+                          destination: destinations[i],
+                          selected: i == selectedIndex,
+                          onTap: () => onDestinationSelected(i),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

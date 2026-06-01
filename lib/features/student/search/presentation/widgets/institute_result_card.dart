@@ -7,6 +7,7 @@ import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
 import '../../../../../shared/widgets/saved_bookmark_button.dart';
 import '../../data/mock_search_data.dart';
 
@@ -31,105 +32,106 @@ class InstituteResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.sp16),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.sp16),
-            border: Border.all(color: palette.borderSubtle),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _Logo(initial: institute.initial, color: institute.logoColor),
-                  const SizedBox(width: AppSpacing.sp12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Expanded(
-                              child: Text(
-                                institute.name,
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: palette.textPrimary,
+    // Frosted-glass card: GlassPanel supplies the translucent fill + hairline;
+    // a transparent Material/InkWell on top keeps the tap ripple.
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      radius: AppSpacing.sp16,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.sp16),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sp16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _Logo(
+                        initial: institute.initial, color: institute.logoColor),
+                    const SizedBox(width: AppSpacing.sp12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Expanded(
+                                child: Text(
+                                  institute.name,
+                                  style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: palette.textPrimary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.sp8),
-                            _RatingBadge(rating: institute.rating),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: <Widget>[
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: palette.textMuted,
-                            ),
-                            const SizedBox(width: 2),
-                            Flexible(
-                              child: Text(
-                                institute.location,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: palette.textMuted,
+                              const SizedBox(width: AppSpacing.sp8),
+                              _RatingBadge(rating: institute.rating),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: <Widget>[
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 14,
+                                color: palette.textMuted,
+                              ),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  institute.location,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: palette.textMuted,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sp12),
-              Wrap(
-                spacing: AppSpacing.sp8,
-                runSpacing: AppSpacing.sp8,
-                children: <Widget>[
-                  for (final tag in institute.tags) _TagPill(label: tag),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sp12),
-              Divider(height: 1, color: palette.borderSubtle),
-              const SizedBox(height: AppSpacing.sp12),
-              Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.menu_book_outlined,
-                    size: 16,
-                    color: palette.textSecondary,
-                  ),
-                  const SizedBox(width: AppSpacing.sp4),
-                  Expanded(
-                    child: Text(
-                      '${institute.courseCount} ${AppStrings.searchCoursesSuffix}',
-                      style: textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: palette.textSecondary,
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  if (onUnsave != null) SavedBookmarkButton(onTap: onUnsave!),
-                ],
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sp12),
+                Wrap(
+                  spacing: AppSpacing.sp8,
+                  runSpacing: AppSpacing.sp8,
+                  children: <Widget>[
+                    for (final tag in institute.tags) _TagPill(label: tag),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sp12),
+                Divider(height: 1, color: palette.borderSubtle),
+                const SizedBox(height: AppSpacing.sp12),
+                Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.menu_book_outlined,
+                      size: 16,
+                      color: palette.textSecondary,
+                    ),
+                    const SizedBox(width: AppSpacing.sp4),
+                    Expanded(
+                      child: Text(
+                        '${institute.courseCount} ${AppStrings.searchCoursesSuffix}',
+                        style: textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                    ),
+                    if (onUnsave != null) SavedBookmarkButton(onTap: onUnsave!),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

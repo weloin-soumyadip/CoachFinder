@@ -12,6 +12,9 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
+import '../../../../../shared/widgets/brand_backdrop.dart';
+import '../../../../../shared/widgets/glass_panel.dart';
+import '../../../../../shared/widgets/neo_surface.dart';
 import '../../../profile/data/mock_owner_profile_data.dart';
 import '../../data/mock_dashboard_data.dart';
 import '../widgets/quick_action_widget.dart';
@@ -52,58 +55,67 @@ class OwnerDashboardScreen extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: palette.background,
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sp16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const SizedBox(height: AppSpacing.sp8),
-                    _Header(onBell: stub),
-                    const SizedBox(height: AppSpacing.sp24),
-                    const _StatGrid(stats: mockDashboardStats),
-                    const SizedBox(height: AppSpacing.sp24),
-                    const ViewsChartWidget(data: mockWeeklyViews),
-                    const SizedBox(height: AppSpacing.sp24),
-                    const _SectionHeader(
-                      title: AppStrings.dashboardQuickActions,
-                    ),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _QuickActions(
-                      onEditCenter: openEditCenter,
-                      onManageCourses: stub,
-                      onViewEnquiries: openEnquiries,
-                      onShareLink: stub,
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionHeader(
-                      title: AppStrings.dashboardRecentEnquiries,
-                      trailing: GestureDetector(
-                        onTap: openEnquiries,
-                        child: Text(
-                          AppStrings.dashboardViewAll,
-                          style:
-                              Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: AppColors.ownerAccent,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+      body: BrandBackdrop(
+        orbColors: const <Color>[AppColors.ownerAccent],
+        child: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: floatingNavClearance(context)),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sp16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const SizedBox(height: AppSpacing.sp8),
+                      GlassPanel(
+                        padding: const EdgeInsets.all(AppSpacing.sp16),
+                        child: _Header(onBell: stub),
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      const _StatGrid(stats: mockDashboardStats),
+                      const SizedBox(height: AppSpacing.sp24),
+                      const ViewsChartWidget(data: mockWeeklyViews),
+                      const SizedBox(height: AppSpacing.sp24),
+                      const _SectionHeader(
+                        title: AppStrings.dashboardQuickActions,
+                      ),
+                      const SizedBox(height: AppSpacing.sp12),
+                      _QuickActions(
+                        onEditCenter: openEditCenter,
+                        onManageCourses: stub,
+                        onViewEnquiries: openEnquiries,
+                        onShareLink: stub,
+                      ),
+                      const SizedBox(height: AppSpacing.sp24),
+                      _SectionHeader(
+                        title: AppStrings.dashboardRecentEnquiries,
+                        trailing: GestureDetector(
+                          onTap: openEnquiries,
+                          child: Text(
+                            AppStrings.dashboardViewAll,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelLarge
+                                ?.copyWith(
+                                  color: AppColors.ownerAccent,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _RecentEnquiries(
-                      items: mockRecentEnquiries,
-                      onTap: openEnquiry,
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.sp12),
+                      _RecentEnquiries(
+                        items: mockRecentEnquiries,
+                        onTap: openEnquiry,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -340,80 +352,78 @@ class _EnquiryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return Material(
-      color: palette.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.sp16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.sp12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.sp16),
-            border: Border.all(color: palette.borderSubtle),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: enquiry.avatarColor,
-                child: Text(
-                  enquiry.initial,
-                  style: textTheme.titleMedium?.copyWith(
-                    color: AppColors.neutralWhite,
-                    fontWeight: FontWeight.w700,
+    return NeoSurface(
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.sp16),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sp12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: enquiry.avatarColor,
+                  child: Text(
+                    enquiry.initial,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.neutralWhite,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sp12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            enquiry.studentName,
-                            style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: palette.textPrimary,
+                const SizedBox(width: AppSpacing.sp12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              enquiry.studentName,
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: palette.textPrimary,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.sp8),
-                        Text(
-                          enquiry.timeAgo,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: palette.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            enquiry.message,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodySmall?.copyWith(
+                          const SizedBox(width: AppSpacing.sp8),
+                          Text(
+                            enquiry.timeAgo,
+                            style: textTheme.labelSmall?.copyWith(
                               color: palette.textMuted,
                             ),
                           ),
-                        ),
-                        if (enquiry.isNew) ...<Widget>[
-                          const SizedBox(width: AppSpacing.sp8),
-                          const _NewBadge(),
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              enquiry.message,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: palette.textMuted,
+                              ),
+                            ),
+                          ),
+                          if (enquiry.isNew) ...<Widget>[
+                            const SizedBox(width: AppSpacing.sp8),
+                            const _NewBadge(),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

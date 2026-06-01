@@ -8,6 +8,9 @@ abstract final class AppStrings {
 
   static const String appName = 'CoachFinder';
 
+  // Splash
+  static const String splashTagline = 'Your growth journey starts here.';
+
   // Onboarding role selector
   static const String onboardingTitle = 'How will you use CoachFinder?';
   static const String onboardingSubtitle =
@@ -97,6 +100,11 @@ abstract final class AppStrings {
   static const String homeTrackProgress = 'Track Progress';
   static const String homeViewInsights = 'View Insights';
   static const String homePerHourSuffix = '/hr';
+  static const String homeTopCenters = 'Top Centers';
+  static const String homeUpcomingWebinars = 'Upcoming Webinars';
+  static const String homeWebinarJoin = 'Join';
+  static const String homeRetry = 'Retry';
+  static const String homeNoData = 'No data found';
 
   // Student search screen
   static const String searchHint = 'Search teachers & institutes...';
@@ -252,6 +260,39 @@ abstract final class AppStrings {
 
   // Teacher placeholder screens (Phase 1 - real UIs land per design later)
   static const String teacherComingSoon = 'Coming soon';
+
+  // Teacher home - activity control center
+  static const String teacherHomeGreetingPrefix = 'Good morning, ';
+  static const String teacherHomeGreetingSuffix = ' 👋';
+  static const String teacherHomeTodaySessions = "Today's Sessions";
+  static const String teacherHomeNoSessions = 'No sessions scheduled today.';
+  static const String teacherHomeRecentEnquiries = 'Recent Enquiries';
+  static const String teacherHomeNoEnquiries = 'No new enquiries yet.';
+  static const String teacherHomeViewAll = 'View all';
+  static const String teacherHomeEditProfile = 'Edit Profile';
+  static const String teacherHomeShareProfile = 'Share Profile';
+  static const String teacherHomeEnquiryWantsPrefix = 'Wants ';
+
+  // Teacher schedule - week strip + a day's sessions
+  static const String teacherScheduleTitle = 'Schedule';
+  static const String teacherScheduleSession = 'session';
+  static const String teacherScheduleSessions = 'sessions';
+  static const String teacherScheduleNoSessions =
+      'No sessions scheduled for this day.';
+  static const String teacherScheduleToday = 'Today';
+
+  // Teacher search - find a coaching center to affiliate with
+  static const String teacherSearchHint = 'Search coaching centers...';
+  static const String teacherSearchHiringFilter = 'Hiring now';
+  static const String teacherSearchHiringBadge = 'Hiring';
+  static const String teacherSearchBrowseSubject = 'Browse by subject';
+  static const String teacherSearchRecent = 'Recent searches';
+  static const String teacherSearchRequestAffiliate = 'Request to affiliate';
+  static const String teacherSearchFoundPrefix = 'Found';
+  static const String teacherSearchCentersWord = 'centers';
+  static const String teacherSearchNoResultsTitle = 'No centers found';
+  static const String teacherSearchNoResultsSubtitle =
+      'Try a different subject or turn off the Hiring filter.';
 
   // Teacher profile - read view
   static const String teacherProfileTitle = 'Profile';
