@@ -36,6 +36,9 @@ abstract final class AppEffects {
   /// Animation duration for [NeoButton] press feedback.
   static const Duration neoPressDuration = Duration(milliseconds: 220);
 
+  /// Debounce window before a typed search query is dispatched to the backend.
+  static const Duration searchDebounce = Duration(milliseconds: 350);
+
   /// Diameter of decorative backdrop orbs.
   static const double orbDiameter = 320;
 }

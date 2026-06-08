@@ -17,27 +17,35 @@ import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../../../../shared/widgets/glass_panel.dart';
-import '../../../home/data/mock_home_data.dart' show mockUser;
-import '../../data/mock_profile_data.dart';
+import '../../data/controllers/student_profile_provider.dart';
+import '../../data/models/student_profile_model.dart';
 
 /// Student Profile screen.
 ///
-/// Phase 1: the identity block is rendered from fixtures (`mockUser` +
-/// `mock_profile_data.dart`). The Appearance control is fully wired - it drives
-/// the app-wide `themeModeProvider` and persists the choice to Hive. Settings
-/// rows are placeholders (a "Coming soon" snackbar). Sign Out clears the session
-/// and role behind a confirmation dialog and returns to onboarding.
+/// The identity block is wired to [studentProfileControllerProvider] (loaded
+/// from `GET /api/auth/me`); Edit Profile pushes the edit form. The Appearance
+/// control drives the app-wide `themeModeProvider` and persists to Hive. Change
+/// Password pushes the change-password form; the remaining settings rows are
+/// placeholders (a "Coming soon" snackbar). Sign Out clears the session + role
+/// behind a confirmation dialog and returns to onboarding.
 class StudentProfileScreen extends HookConsumerWidget {
   const StudentProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final StudentProfileState profileState =
+        ref.watch(studentProfileControllerProvider);
 
     void setThemeMode(ThemeMode mode) {
       ref.read(themeModeProvider.notifier).state = mode;
       LocalStorage.set(StorageKeys.themeMode, mode.name);
     }
+
+    void goEditProfile() => context.pushNamed(AppRoutes.studentEditProfile);
+
+    void goChangePassword() =>
+        context.pushNamed(AppRoutes.studentChangePassword);
 
     void stub() {
       ScaffoldMessenger.of(context)
@@ -113,7 +121,11 @@ class StudentProfileScreen extends HookConsumerWidget {
                                 ),
                       ),
                       const SizedBox(height: AppSpacing.sp16),
-                      _ProfileHeader(onEdit: stub),
+                      _ProfileHeader(
+                        profile: profileState.profile,
+                        isLoading: profileState.isLoading,
+                        onEdit: goEditProfile,
+                      ),
                       const SizedBox(height: AppSpacing.sp24),
                       const _SectionHeader(title: AppStrings.profileAppearance),
                       const SizedBox(height: AppSpacing.sp12),
@@ -124,7 +136,10 @@ class StudentProfileScreen extends HookConsumerWidget {
                       const SizedBox(height: AppSpacing.sp24),
                       const _SectionHeader(title: AppStrings.profileSettings),
                       const SizedBox(height: AppSpacing.sp12),
-                      _SettingsCard(onTap: stub),
+                      _SettingsCard(
+                        onTap: stub,
+                        onChangePassword: goChangePassword,
+                      ),
                       const SizedBox(height: AppSpacing.sp24),
                       OutlinedButton.icon(
                         onPressed: handleSignOut,
@@ -155,15 +170,26 @@ class StudentProfileScreen extends HookConsumerWidget {
 }
 
 /// Identity block: avatar, full name, email, and an Edit Profile button.
+/// Renders the live [profile]; before the first load completes it shows a
+/// placeholder initial and a spinner in place of the name.
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.onEdit});
+  const _ProfileHeader({
+    required this.profile,
+    required this.isLoading,
+    required this.onEdit,
+  });
 
+  final StudentProfile? profile;
+  final bool isLoading;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
+    final StudentProfile? p = profile;
+    final String initial =
+        (p != null && p.name.isNotEmpty) ? p.name[0].toUpperCase() : '?';
     // Frosted-glass identity card.
     return GlassPanel(
       padding: const EdgeInsets.all(AppSpacing.sp16),
@@ -174,7 +200,7 @@ class _ProfileHeader extends StatelessWidget {
             radius: 36,
             backgroundColor: palette.primaryTint,
             child: Text(
-              mockUser.firstName[0],
+              initial,
               style: textTheme.headlineMedium?.copyWith(
                 color: palette.primary,
                 fontWeight: FontWeight.w700,
@@ -182,20 +208,35 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sp12),
-          Text(
-            mockUser.fullName,
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: palette.textPrimary,
+          if (p == null && isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.sp8),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            )
+          else ...<Widget>[
+            Text(
+              p?.name ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: palette.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sp4),
-          Text(
-            mockProfileEmail,
-            style: textTheme.bodyMedium?.copyWith(
-              color: palette.textMuted,
+            const SizedBox(height: AppSpacing.sp4),
+            Text(
+              p?.email ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyMedium?.copyWith(
+                color: palette.textMuted,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: AppSpacing.sp16),
           OutlinedButton(
             onPressed: onEdit,
@@ -322,9 +363,10 @@ class _AppearancePill extends StatelessWidget {
 
 /// Card holding the (placeholder) settings rows, divided by hairlines.
 class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.onTap});
+  const _SettingsCard({required this.onTap, required this.onChangePassword});
 
   final VoidCallback onTap;
+  final VoidCallback onChangePassword;
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +377,12 @@ class _SettingsCard extends StatelessWidget {
       radius: AppSpacing.sp16,
       child: Column(
         children: <Widget>[
+          _SettingsRow(
+            icon: Icons.lock_outline,
+            label: AppStrings.profileChangePassword,
+            onTap: onChangePassword,
+          ),
+          const _RowDivider(),
           _SettingsRow(
             icon: Icons.notifications_outlined,
             label: AppStrings.profileNotifications,

@@ -21,8 +21,7 @@ void main() {
       expect(webinar.teacher.name, 'Marcus Chen');
       expect(webinar.teacher.profileImage, 'https://cdn/t.png');
       expect(webinar.teacher.totalReviews, 120);
-      expect(webinar.scheduledAt,
-          DateTime.parse('2026-06-01T10:00:00.000Z'));
+      expect(webinar.scheduledAt, DateTime.parse('2026-06-01T10:00:00.000Z'));
       expect(webinar.thumbnail, 'https://cdn/thumb.png');
       expect(webinar.joinUrl, 'https://meet/abc');
     });

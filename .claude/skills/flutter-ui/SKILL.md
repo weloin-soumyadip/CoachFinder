@@ -341,7 +341,7 @@ Scaffold(
    `flutter build apk --debug`. For new hero screens, also walk the screen on a
    device or simulator in **both light and dark** modes — neoglass is most
    fragile when the calibration is off.
-4. Record the decision: add `decisions/00NN-<slug>.md` and tick `task.md`.
+4. Record the decision: add `decisions/00NN-<slug>.md` and update the relevant section of `CLAUDE.md`.
 
 ## Constraints
 

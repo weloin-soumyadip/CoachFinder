@@ -20,16 +20,20 @@ import '../../../../../shared/widgets/glass_panel.dart';
 import '../../../../../shared/widgets/neo_button.dart';
 import '../../../../../shared/widgets/neo_surface.dart';
 import '../../../../auth/data/providers/auth_providers.dart';
-import '../../data/mock_owner_profile_data.dart';
+import '../../../manage_center/data/controllers/my_center_provider.dart';
+import '../../data/controllers/owner_profile_provider.dart';
+import '../../data/models/owner_profile_model.dart';
 
 /// Owner Profile screen.
 ///
-/// Phase 1: the identity block is rendered from fixtures
-/// (`mock_owner_profile_data.dart`). The Appearance control is fully wired - it
-/// drives the app-wide `themeModeProvider` and persists the choice to Hive,
-/// exactly as the student profile does. Settings rows are placeholders (a
-/// "Coming soon" snackbar). Sign Out clears the session and role behind a
-/// confirmation dialog and returns to onboarding.
+/// The identity block is wired to `GET /api/auth/me` via
+/// [ownerProfileControllerProvider] (name + email), with the business subtitle
+/// pulled from the centre (`myCenterProvider`). Edit Profile and Change Password
+/// push their nested routes (`PATCH /api/owners/me` / `POST /api/owners/me/password`).
+/// The Appearance control drives the app-wide `themeModeProvider` and persists
+/// to Hive. The remaining settings rows are placeholders (a "Coming soon"
+/// snackbar). Sign Out clears the session and role behind a confirmation dialog
+/// and returns to onboarding.
 ///
 /// The accent throughout is the owner orange (`AppColors.ownerAccent`) rather
 /// than the student blue, so the screen stays on-brand for the owner shell.
@@ -39,11 +43,19 @@ class OwnerProfileScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    // Identity from GET /auth/me; the business subtitle from the centre.
+    final OwnerProfile? profile =
+        ref.watch(ownerProfileControllerProvider).profile;
+    final String? businessName = ref.watch(myCenterProvider).valueOrNull?.name;
 
     void setThemeMode(ThemeMode mode) {
       ref.read(themeModeProvider.notifier).state = mode;
       LocalStorage.set(StorageKeys.themeMode, mode.name);
     }
+
+    void openEdit() => context.pushNamed(AppRoutes.ownerEditProfile);
+    void openChangePassword() =>
+        context.pushNamed(AppRoutes.ownerChangePassword);
 
     void stub() {
       ScaffoldMessenger.of(context)
@@ -111,7 +123,11 @@ class OwnerProfileScreen extends HookConsumerWidget {
                                 ),
                       ),
                       const SizedBox(height: AppSpacing.sp16),
-                      _ProfileHeader(onEdit: stub),
+                      _ProfileHeader(
+                        profile: profile,
+                        businessName: businessName,
+                        onEdit: openEdit,
+                      ),
                       const SizedBox(height: AppSpacing.sp24),
                       const _SectionHeader(title: AppStrings.profileAppearance),
                       const SizedBox(height: AppSpacing.sp12),
@@ -122,7 +138,10 @@ class OwnerProfileScreen extends HookConsumerWidget {
                       const SizedBox(height: AppSpacing.sp24),
                       const _SectionHeader(title: AppStrings.profileSettings),
                       const SizedBox(height: AppSpacing.sp12),
-                      _SettingsCard(onTap: stub),
+                      _SettingsCard(
+                        onTap: stub,
+                        onChangePassword: openChangePassword,
+                      ),
                       const SizedBox(height: AppSpacing.sp24),
                       OutlinedButton.icon(
                         onPressed: handleSignOut,
@@ -152,10 +171,21 @@ class OwnerProfileScreen extends HookConsumerWidget {
   }
 }
 
-/// Identity block: avatar (owner initial), owner name, business name, email,
-/// and an Edit Profile button.
+/// Identity block: avatar (owner initial), owner name, business name (the
+/// centre), email, and an Edit Profile button. Values come from the live
+/// [OwnerProfile]; before the first load completes it shows placeholders.
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.onEdit});
+  const _ProfileHeader({
+    required this.profile,
+    required this.businessName,
+    required this.onEdit,
+  });
+
+  /// The loaded owner profile, or null while it loads.
+  final OwnerProfile? profile;
+
+  /// The centre name shown as the business subtitle, or null.
+  final String? businessName;
 
   final VoidCallback onEdit;
 
@@ -163,6 +193,10 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
+    final String initial = profile?.initial ?? '?';
+    final String name = profile?.name ?? '';
+    final String email = profile?.email ?? '';
+    final String business = (businessName ?? '').trim();
     return GlassPanel(
       padding: const EdgeInsets.all(AppSpacing.sp24),
       child: Column(
@@ -176,7 +210,7 @@ class _ProfileHeader extends StatelessWidget {
               height: AppSpacing.sp48 + AppSpacing.sp24,
               child: Center(
                 child: Text(
-                  mockOwnerInitial,
+                  initial,
                   style: textTheme.headlineMedium?.copyWith(
                     color: AppColors.neutralWhite,
                     fontWeight: FontWeight.w700,
@@ -186,41 +220,50 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sp12),
-          Text(
-            mockOwnerName,
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: palette.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sp4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(
-                Icons.business_outlined,
-                size: 16,
-                color: AppColors.ownerAccent,
+          if (name.isNotEmpty)
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: palette.textPrimary,
               ),
-              const SizedBox(width: AppSpacing.sp4),
-              Flexible(
-                child: Text(
-                  mockOwnerBusinessName,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.ownerAccent,
-                    fontWeight: FontWeight.w600,
+            ),
+          if (business.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.sp4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Icon(
+                  Icons.business_outlined,
+                  size: 16,
+                  color: AppColors.ownerAccent,
+                ),
+                const SizedBox(width: AppSpacing.sp4),
+                Flexible(
+                  child: Text(
+                    business,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: AppColors.ownerAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sp4),
-          Text(
-            mockOwnerEmail,
-            style: textTheme.bodyMedium?.copyWith(
-              color: palette.textMuted,
+              ],
             ),
-          ),
+          ],
+          if (email.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.sp4),
+            Text(
+              email,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+            ),
+          ],
           const SizedBox(height: AppSpacing.sp16),
           NeoButton(
             onPressed: onEdit,
@@ -321,9 +364,10 @@ class _AppearancePill extends StatelessWidget {
 
 /// Card holding the (placeholder) settings rows, divided by hairlines.
 class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.onTap});
+  const _SettingsCard({required this.onTap, required this.onChangePassword});
 
   final VoidCallback onTap;
+  final VoidCallback onChangePassword;
 
   @override
   Widget build(BuildContext context) {
@@ -331,6 +375,12 @@ class _SettingsCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: <Widget>[
+          _SettingsRow(
+            icon: Icons.lock_outline,
+            label: AppStrings.profileChangePassword,
+            onTap: onChangePassword,
+          ),
+          const _RowDivider(),
           _SettingsRow(
             icon: Icons.notifications_outlined,
             label: AppStrings.profileNotifications,

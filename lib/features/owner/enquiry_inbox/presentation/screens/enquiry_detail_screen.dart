@@ -1,8 +1,11 @@
-/// Single enquiry conversation view: contact header, message thread, status
-/// actions, and a reply box.
+/// Single enquiry detail — wired to `GET`/`PATCH /api/owners/enquiries/:id` via
+/// [enquiryDetailControllerProvider]. Shows the student contact + message, a
+/// status control (New/Contacted/Closed), and a private owner-notes editor.
+/// There is no reply/conversation on the backend.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -13,28 +16,23 @@ import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../data/controllers/enquiry_provider.dart';
-import '../../data/mock_enquiry_data.dart';
-import '../widgets/reply_input_widget.dart';
+import '../../data/models/enquiry_model.dart';
+import '../widgets/enquiry_tile_widget.dart' show enquiryAvatarColor;
 
-/// Owner enquiry detail / conversation screen. Receives `enquiryId` from the
-/// GoRouter path parameter and reads the matching [Enquiry] from
-/// [enquiriesProvider], so replies and archive actions update the shared state
-/// (and the inbox) live. Renders within the owner shell; its app-bar back
-/// button pops if possible, else falls back to the inbox.
+/// Owner enquiry detail screen. Receives `enquiryId` from the route.
 class EnquiryDetailScreen extends HookConsumerWidget {
+  /// Creates the detail screen for [enquiryId].
   const EnquiryDetailScreen({super.key, required this.enquiryId});
 
+  /// The enquiry `_id`.
   final String enquiryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final List<Enquiry> enquiries = ref.watch(enquiriesProvider);
-    final EnquiryNotifier notifier = ref.read(enquiriesProvider.notifier);
     final palette = context.palette;
-
-    final Iterable<Enquiry> matches =
-        enquiries.where((Enquiry e) => e.id == enquiryId);
-    final Enquiry? enquiry = matches.isEmpty ? null : matches.first;
+    final EnquiryDetailState state =
+        ref.watch(enquiryDetailControllerProvider(enquiryId));
+    final Enquiry? enquiry = state.enquiry;
 
     void goBack() {
       if (context.canPop()) {
@@ -44,34 +42,22 @@ class EnquiryDetailScreen extends HookConsumerWidget {
       }
     }
 
-    if (enquiry == null) {
-      return Scaffold(
-        backgroundColor: palette.background,
-        appBar: AppBar(
-          leading: BackButton(onPressed: goBack),
-          backgroundColor: palette.surface,
-        ),
-        body: Center(
-          child: Text(
-            AppStrings.enquiryNotFound,
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(color: palette.textMuted),
-          ),
+    Widget body;
+    if (enquiry == null && state.status == EnquiryDetailStatus.loading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (enquiry == null) {
+      body = Center(
+        child: Text(
+          state.errorMessage ?? AppStrings.enquiryNotFound,
+          style: Theme.of(context)
+              .textTheme
+              .bodyLarge
+              ?.copyWith(color: palette.textMuted),
         ),
       );
+    } else {
+      body = _DetailContent(enquiryId: enquiryId);
     }
-
-    void stub() {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text(AppStrings.stubComingSoon)),
-        );
-    }
-
-    final bool isArchived = enquiry.status == EnquiryStatus.archived;
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -80,81 +66,154 @@ class EnquiryDetailScreen extends HookConsumerWidget {
         surfaceTintColor: Colors.transparent,
         leading: BackButton(onPressed: goBack),
         title: Text(
-          enquiry.studentName,
+          enquiry?.studentName ?? AppStrings.enquiriesTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: palette.textPrimary,
               ),
         ),
-        actions: <Widget>[
-          IconButton(
-            tooltip: isArchived
-                ? AppStrings.enquiryActionUnarchive
-                : AppStrings.enquiryActionArchive,
-            icon: Icon(
-              isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
-              color: palette.textSecondary,
-            ),
-            onPressed: () => isArchived
-                ? notifier.unarchive(enquiry.id)
-                : notifier.archive(enquiry.id),
-          ),
-        ],
       ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Column(
-            children: <Widget>[
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.sp16,
-                    AppSpacing.sp16,
-                    AppSpacing.sp16,
-                    AppSpacing.sp24,
-                  ),
-                  children: <Widget>[
-                    _ContactCard(
-                      enquiry: enquiry,
-                      onCall: stub,
-                      onEmail: stub,
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    Text(
-                      AppStrings.enquiryConversationLabel,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: palette.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp12),
-                    for (final EnquiryMessage m in enquiry.thread) ...<Widget>[
-                      _MessageBubble(message: m),
-                      const SizedBox(height: AppSpacing.sp12),
-                    ],
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.only(
-                  bottom: floatingNavClearance(context),
-                ),
-                child: ReplyInputWidget(
-                  onSend: (String text) => notifier.addReply(enquiry.id, text),
-                ),
-              ),
-            ],
+      body: body,
+    );
+  }
+}
+
+/// The loaded-enquiry content (seeds the notes field once from the enquiry).
+class _DetailContent extends HookConsumerWidget {
+  const _DetailContent({required this.enquiryId});
+
+  final String enquiryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+    final EnquiryDetailState state =
+        ref.watch(enquiryDetailControllerProvider(enquiryId));
+    final EnquiryDetailController controller =
+        ref.read(enquiryDetailControllerProvider(enquiryId).notifier);
+    final Enquiry enquiry = state.enquiry!;
+    final TextEditingController notesC =
+        useTextEditingController(text: enquiry.ownerNotes ?? '');
+
+    void snack(String message) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    }
+
+    Future<void> changeStatus(EnquiryStatus status) async {
+      if (status == enquiry.status || state.saving) return;
+      final bool ok = await controller.setStatus(status);
+      if (!context.mounted) return;
+      snack(ok
+          ? AppStrings.enquiryStatusUpdatedSnack
+          : (ref
+                  .read(enquiryDetailControllerProvider(enquiryId))
+                  .errorMessage ??
+              AppStrings.enquiryUpdateError));
+    }
+
+    Future<void> saveNotes() async {
+      final bool ok = await controller.saveNotes(notesC.text);
+      if (!context.mounted) return;
+      snack(ok
+          ? AppStrings.enquiryNotesSavedSnack
+          : (ref
+                  .read(enquiryDetailControllerProvider(enquiryId))
+                  .errorMessage ??
+              AppStrings.enquiryUpdateError));
+    }
+
+    void stub() => snack(AppStrings.stubComingSoon);
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.sp16,
+            AppSpacing.sp16,
+            AppSpacing.sp16,
+            floatingNavClearance(context),
           ),
+          children: <Widget>[
+            _ContactCard(enquiry: enquiry, onCall: stub, onEmail: stub),
+            const SizedBox(height: AppSpacing.sp24),
+            _SectionTitle(title: AppStrings.enquiryMessageLabel),
+            const SizedBox(height: AppSpacing.sp12),
+            _Card(
+              child: Text(
+                enquiry.message,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: palette.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sp24),
+            _SectionTitle(title: AppStrings.enquiryStatusLabel),
+            const SizedBox(height: AppSpacing.sp12),
+            _StatusControl(
+              current: enquiry.status,
+              enabled: !state.saving,
+              onSelect: changeStatus,
+            ),
+            const SizedBox(height: AppSpacing.sp24),
+            _SectionTitle(title: AppStrings.enquiryNotesLabel),
+            const SizedBox(height: AppSpacing.sp12),
+            TextField(
+              controller: notesC,
+              maxLines: 4,
+              style: TextStyle(color: palette.textPrimary),
+              decoration: InputDecoration(
+                hintText: AppStrings.enquiryNotesHint,
+                hintStyle: TextStyle(color: palette.textMuted),
+                filled: true,
+                fillColor: palette.inputFill,
+                contentPadding: const EdgeInsets.all(AppSpacing.sp16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.sp12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sp12),
+            FilledButton(
+              onPressed: state.saving ? null : saveNotes,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.ownerAccent,
+                foregroundColor: AppColors.neutralWhite,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.sp12),
+                ),
+              ),
+              child: state.saving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.neutralWhite,
+                      ),
+                    )
+                  : const Text(
+                      AppStrings.enquiryNotesSave,
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Header card: avatar, course tag, status chip, contact rows, and Call/Email
-/// action buttons.
+/// Header card: avatar, subject chip, status chip, contact rows, Call/Email.
 class _ContactCard extends StatelessWidget {
   const _ContactCard({
     required this.enquiry,
@@ -170,13 +229,9 @@ class _ContactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sp16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.sp16),
-        border: Border.all(color: palette.borderSubtle),
-      ),
+    final bool hasPhone = (enquiry.studentPhone ?? '').isNotEmpty;
+    final bool hasEmail = (enquiry.studentEmail ?? '').isNotEmpty;
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -184,7 +239,7 @@ class _ContactCard extends StatelessWidget {
             children: <Widget>[
               CircleAvatar(
                 radius: 22,
-                backgroundColor: enquiry.avatarColor,
+                backgroundColor: enquiryAvatarColor(enquiry.id),
                 child: Text(
                   enquiry.initial,
                   style: textTheme.titleMedium?.copyWith(
@@ -194,37 +249,60 @@ class _ContactCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sp12),
-              Expanded(child: _CourseChip(course: enquiry.course)),
+              Expanded(
+                child: (enquiry.subjectName ?? '').isEmpty
+                    ? Text(
+                        enquiry.studentName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: palette.textPrimary,
+                        ),
+                      )
+                    : _SubjectChip(subject: enquiry.subjectName!),
+              ),
               const SizedBox(width: AppSpacing.sp8),
               _StatusChip(status: enquiry.status),
             ],
           ),
-          const SizedBox(height: AppSpacing.sp16),
-          _ContactRow(icon: Icons.phone_outlined, value: enquiry.phone),
-          const SizedBox(height: AppSpacing.sp8),
-          _ContactRow(icon: Icons.email_outlined, value: enquiry.email),
-          const SizedBox(height: AppSpacing.sp16),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onCall,
-                  icon: const Icon(Icons.call_outlined, size: 18),
-                  label: const Text(AppStrings.enquiryContactCall),
-                  style: _actionStyle,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sp12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onEmail,
-                  icon: const Icon(Icons.mail_outline, size: 18),
-                  label: const Text(AppStrings.enquiryContactEmail),
-                  style: _actionStyle,
-                ),
-              ),
-            ],
-          ),
+          if (hasPhone) ...<Widget>[
+            const SizedBox(height: AppSpacing.sp16),
+            _ContactRow(
+                icon: Icons.phone_outlined, value: enquiry.studentPhone!),
+          ],
+          if (hasEmail) ...<Widget>[
+            const SizedBox(height: AppSpacing.sp8),
+            _ContactRow(
+                icon: Icons.email_outlined, value: enquiry.studentEmail!),
+          ],
+          if (hasPhone || hasEmail) ...<Widget>[
+            const SizedBox(height: AppSpacing.sp16),
+            Row(
+              children: <Widget>[
+                if (hasPhone)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onCall,
+                      icon: const Icon(Icons.call_outlined, size: 18),
+                      label: const Text(AppStrings.enquiryContactCall),
+                      style: _actionStyle,
+                    ),
+                  ),
+                if (hasPhone && hasEmail)
+                  const SizedBox(width: AppSpacing.sp12),
+                if (hasEmail)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onEmail,
+                      icon: const Icon(Icons.mail_outline, size: 18),
+                      label: const Text(AppStrings.enquiryContactEmail),
+                      style: _actionStyle,
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -240,7 +318,83 @@ class _ContactCard extends StatelessWidget {
   );
 }
 
-/// Labelled icon + value row used for phone and email.
+/// New / Contacted / Closed segmented control.
+class _StatusControl extends StatelessWidget {
+  const _StatusControl({
+    required this.current,
+    required this.enabled,
+    required this.onSelect,
+  });
+
+  final EnquiryStatus current;
+  final bool enabled;
+  final ValueChanged<EnquiryStatus> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        for (final EnquiryStatus s in EnquiryStatus.values) ...<Widget>[
+          if (s != EnquiryStatus.values.first)
+            const SizedBox(width: AppSpacing.sp8),
+          Expanded(
+            child: _StatusOption(
+              label: _statusLabel(s),
+              selected: s == current,
+              onTap: enabled ? () => onSelect(s) : null,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _StatusOption extends StatelessWidget {
+  const _StatusOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Material(
+      color: selected ? AppColors.ownerAccent : palette.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.sp12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSpacing.sp12),
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.sp12),
+            border: Border.all(
+              color: selected ? AppColors.ownerAccent : palette.border,
+            ),
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color:
+                      selected ? AppColors.neutralWhite : palette.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ContactRow extends StatelessWidget {
   const _ContactRow({required this.icon, required this.value});
 
@@ -268,11 +422,11 @@ class _ContactRow extends StatelessWidget {
   }
 }
 
-/// Accent-tinted pill naming the course/subject the enquiry is about.
-class _CourseChip extends StatelessWidget {
-  const _CourseChip({required this.course});
+/// Accent-tinted pill naming the subject the enquiry is about.
+class _SubjectChip extends StatelessWidget {
+  const _SubjectChip({required this.subject});
 
-  final String course;
+  final String subject;
 
   @override
   Widget build(BuildContext context) {
@@ -290,15 +444,12 @@ class _CourseChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
-              Icons.menu_book_outlined,
-              size: 14,
-              color: AppColors.ownerAccent,
-            ),
+            const Icon(Icons.menu_book_outlined,
+                size: 14, color: AppColors.ownerAccent),
             const SizedBox(width: AppSpacing.sp4),
             Flexible(
               child: Text(
-                course,
+                subject,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -314,7 +465,7 @@ class _CourseChip extends StatelessWidget {
   }
 }
 
-/// Status pill - accent for new, green for replied, muted for archived.
+/// Status pill — accent (new), info (contacted), success (closed).
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
 
@@ -322,19 +473,18 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     final (Color color, String label) = switch (status) {
       EnquiryStatus.newEnquiry => (
           AppColors.ownerAccent,
-          AppStrings.enquiryStatusNew,
+          AppStrings.enquiryStatusNew
         ),
-      EnquiryStatus.replied => (
+      EnquiryStatus.contacted => (
+          AppColors.info,
+          AppStrings.enquiryStatusContacted
+        ),
+      EnquiryStatus.closed => (
           AppColors.success,
-          AppStrings.enquiryStatusReplied,
-        ),
-      EnquiryStatus.archived => (
-          palette.textMuted,
-          AppStrings.enquiryStatusArchived,
+          AppStrings.enquiryStatusClosed
         ),
     };
     return Container(
@@ -357,75 +507,49 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-/// A single chat bubble: student messages sit left on a surface bubble, owner
-/// replies sit right on an accent bubble, each with a timestamp beneath.
-class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message});
+/// Bold section title.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
 
-  final EnquiryMessage message;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final palette = context.palette;
-    final bool owner = message.fromOwner;
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return Row(
-          mainAxisAlignment:
-              owner ? MainAxisAlignment.end : MainAxisAlignment.start,
-          children: <Widget>[
-            ConstrainedBox(
-              constraints:
-                  BoxConstraints(maxWidth: constraints.maxWidth * 0.78),
-              child: Column(
-                crossAxisAlignment:
-                    owner ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sp12,
-                      vertical: AppSpacing.sp12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: owner ? AppColors.ownerAccent : palette.surface,
-                      border: owner
-                          ? null
-                          : Border.all(color: palette.borderSubtle),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(AppSpacing.sp16),
-                        topRight: const Radius.circular(AppSpacing.sp16),
-                        bottomLeft: Radius.circular(
-                          owner ? AppSpacing.sp16 : AppSpacing.sp4,
-                        ),
-                        bottomRight: Radius.circular(
-                          owner ? AppSpacing.sp4 : AppSpacing.sp16,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      message.text,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: owner
-                            ? AppColors.neutralWhite
-                            : palette.textPrimary,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sp4),
-                  Text(
-                    message.timeLabel,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: palette.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: context.palette.textPrimary,
+          ),
     );
   }
 }
+
+/// Flat surface card.
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.sp16),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.sp16),
+        border: Border.all(color: palette.borderSubtle),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Maps a status to its display label.
+String _statusLabel(EnquiryStatus s) => switch (s) {
+      EnquiryStatus.newEnquiry => AppStrings.enquiryStatusNew,
+      EnquiryStatus.contacted => AppStrings.enquiryStatusContacted,
+      EnquiryStatus.closed => AppStrings.enquiryStatusClosed,
+    };

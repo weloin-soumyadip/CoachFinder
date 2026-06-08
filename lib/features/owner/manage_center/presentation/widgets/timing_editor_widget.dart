@@ -7,7 +7,67 @@ import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
-import '../../data/mock_center_data.dart';
+
+/// One weekday's class hours, as edited in the UI (a closed day ignores
+/// [openAt] / [closeAt]). Converts to/from the backend `CenterTiming`
+/// (`HH:mm` strings) at the edges of the edit screen.
+class DayTiming {
+  /// Creates a day timing.
+  const DayTiming({
+    required this.day,
+    required this.isOpen,
+    required this.openAt,
+    required this.closeAt,
+  });
+
+  /// Short day label, e.g. "Mon".
+  final String day;
+
+  /// Whether the centre runs classes this day.
+  final bool isOpen;
+
+  /// Opening time (used only when [isOpen]).
+  final TimeOfDay openAt;
+
+  /// Closing time (used only when [isOpen]).
+  final TimeOfDay closeAt;
+
+  /// Field-wise copy (day is fixed).
+  DayTiming copyWith({bool? isOpen, TimeOfDay? openAt, TimeOfDay? closeAt}) {
+    return DayTiming(
+      day: day,
+      isOpen: isOpen ?? this.isOpen,
+      openAt: openAt ?? this.openAt,
+      closeAt: closeAt ?? this.closeAt,
+    );
+  }
+}
+
+/// Formats a [TimeOfDay] as e.g. "4:00 PM" without a localized context.
+String formatTimeOfDay(TimeOfDay t) {
+  final int hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+  final String minute = t.minute.toString().padLeft(2, '0');
+  final String period = t.period == DayPeriod.am ? 'AM' : 'PM';
+  return '$hour:$minute $period';
+}
+
+/// Parses a backend `HH:mm` string into a [TimeOfDay], or returns [fallback]
+/// when null/malformed.
+TimeOfDay timeOfDayFromHhmm(String? hhmm, TimeOfDay fallback) {
+  if (hhmm == null) return fallback;
+  final List<String> parts = hhmm.split(':');
+  if (parts.length != 2) return fallback;
+  final int? h = int.tryParse(parts[0]);
+  final int? m = int.tryParse(parts[1]);
+  if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
+    return fallback;
+  }
+  return TimeOfDay(hour: h, minute: m);
+}
+
+/// Formats a [TimeOfDay] as a backend `HH:mm` 24-hour string.
+String hhmmFromTimeOfDay(TimeOfDay t) =>
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
 /// One row per day inside a surface card. Each row has a day label, the open
 /// and close time chips (tappable, firing [onPickTime] so the host can show a

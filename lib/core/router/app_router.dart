@@ -22,15 +22,22 @@ import '../../features/student/home/presentation/screens/home_screen.dart';
 import '../../features/student/search/presentation/screens/search_screen.dart';
 import '../../features/student/search/presentation/screens/filter_screen.dart';
 import '../../features/student/center_detail/presentation/screens/center_detail_screen.dart';
+import '../../features/student/teacher_detail/presentation/screens/teacher_detail_screen.dart';
+import '../../features/student/profile/presentation/screens/change_password_screen.dart';
+import '../../features/student/profile/presentation/screens/edit_student_profile_screen.dart';
 import '../../features/student/profile/presentation/screens/student_profile_screen.dart';
 import '../../features/student/saved/presentation/screens/saved_screen.dart';
 import '../../features/owner/dashboard/presentation/screens/owner_dashboard_screen.dart';
+import '../../features/owner/manage_center/presentation/screens/owner_setup_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/manage_center_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/create_center_screen.dart';
 import '../../features/owner/manage_center/presentation/screens/edit_center_screen.dart';
 import '../../features/owner/enquiry_inbox/presentation/screens/enquiry_inbox_screen.dart';
 import '../../features/owner/enquiry_inbox/presentation/screens/enquiry_detail_screen.dart';
 import '../../features/owner/profile/presentation/screens/owner_profile_screen.dart';
+import '../../features/owner/profile/presentation/screens/edit_owner_profile_screen.dart';
+import '../../features/owner/profile/presentation/screens/change_password_screen.dart'
+    as owner_pw;
 import '../../features/teacher/home/presentation/screens/teacher_home_screen.dart';
 import '../../features/teacher/search/presentation/screens/teacher_search_screen.dart';
 import '../../features/teacher/enquiries/presentation/screens/teacher_enquiries_screen.dart';
@@ -52,6 +59,7 @@ abstract final class AppRouter {
     '/home',
     '/search',
     '/center',
+    '/teacher',
     '/saved',
     '/student-profile',
   ];
@@ -78,9 +86,12 @@ abstract final class AppRouter {
   }
 
   /// The shell-home location for a given role. Used both to land a freshly
-  /// authenticated user and to bounce them out of another role's shell.
+  /// authenticated user and to bounce them out of another role's shell. Owners
+  /// funnel through the setup gate (`/owner-setup`), which forwards to the
+  /// dashboard once a center exists — so a no-center owner can never land
+  /// directly on the (center-less, 404-ing) dashboard.
   static String _homeFor(String role) {
-    if (role == roleOwner) return '/dashboard';
+    if (role == roleOwner) return '/owner-setup';
     if (role == roleTeacher) return '/teacher-home';
     return '/home'; // student (default)
   }
@@ -138,6 +149,10 @@ abstract final class AppRouter {
             (role != roleOwner && isOwnerRoute) ||
             (role != roleTeacher && isTeacherRoute);
         if (inOtherShell) return _homeFor(role);
+
+        // The owner setup gate (`/owner-setup`) lives outside the owner shell so
+        // it has no bottom tabs. It is owner-only; any other role lands home.
+        if (loc == '/owner-setup' && role != roleOwner) return _homeFor(role);
 
         return null;
       },
@@ -199,6 +214,17 @@ abstract final class AppRouter {
               ),
             ),
             GoRoute(
+              path: '/teacher/:id',
+              name: AppRoutes.studentTeacherDetail,
+              builder: (context, state) => TeacherDetailScreen(
+                teacherId: state.pathParameters['id'] ?? '',
+                // Subject names supplied by the originating card (the endpoint
+                // returns bare subject ids).
+                subjectNames:
+                    (state.extra as List<String>?) ?? const <String>[],
+              ),
+            ),
+            GoRoute(
               path: '/saved',
               name: AppRoutes.studentSaved,
               builder: (context, state) => const SavedScreen(),
@@ -207,8 +233,30 @@ abstract final class AppRouter {
               path: '/student-profile',
               name: AppRoutes.studentProfile,
               builder: (context, state) => const StudentProfileScreen(),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: 'edit',
+                  name: AppRoutes.studentEditProfile,
+                  builder: (context, state) => const EditStudentProfileScreen(),
+                ),
+                GoRoute(
+                  path: 'change-password',
+                  name: AppRoutes.studentChangePassword,
+                  builder: (context, state) => const ChangePasswordScreen(),
+                ),
+              ],
             ),
           ],
+        ),
+
+        // Owner setup gate — top-level (NOT inside the owner shell, so it has no
+        // bottom navigation). A freshly-authenticated owner lands here; it
+        // checks for an existing center and forwards to the dashboard, or hosts
+        // the create-center wizard when there is none.
+        GoRoute(
+          path: '/owner-setup',
+          name: AppRoutes.ownerSetupCenter,
+          builder: (context, state) => const OwnerSetupScreen(),
         ),
 
         // Owner shell
@@ -253,6 +301,19 @@ abstract final class AppRouter {
               path: '/owner-profile',
               name: AppRoutes.ownerProfile,
               builder: (context, state) => const OwnerProfileScreen(),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: 'edit',
+                  name: AppRoutes.ownerEditProfile,
+                  builder: (context, state) => const EditOwnerProfileScreen(),
+                ),
+                GoRoute(
+                  path: 'change-password',
+                  name: AppRoutes.ownerChangePassword,
+                  builder: (context, state) =>
+                      const owner_pw.ChangePasswordScreen(),
+                ),
+              ],
             ),
           ],
         ),

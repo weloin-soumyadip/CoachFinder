@@ -4,9 +4,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../core/constants/app_strings.dart';
+import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
@@ -235,7 +237,11 @@ class _DashboardSections extends StatelessWidget {
           for (final teacher in dashboard.topTeachers)
             TeacherCardWidget(
               teacher: teacher,
-              onTap: () => _showComingSoon(context),
+              onTap: () => context.pushNamed(
+                AppRoutes.studentTeacherDetail,
+                pathParameters: <String, String>{'id': teacher.id},
+                extra: teacher.subjects,
+              ),
             ),
         ],
       ),
@@ -245,7 +251,10 @@ class _DashboardSections extends StatelessWidget {
           for (final center in dashboard.topCenters)
             CenterCardWidget(
               center: center,
-              onTap: () => _showComingSoon(context),
+              onTap: () => context.pushNamed(
+                AppRoutes.studentCenterDetail,
+                pathParameters: <String, String>{'id': center.id},
+              ),
             ),
         ],
       ),

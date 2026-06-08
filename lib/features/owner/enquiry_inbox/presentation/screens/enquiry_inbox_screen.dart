@@ -1,5 +1,9 @@
-/// Inbox list of student enquiries with search and status filters.
+/// Inbox list of student enquiries — wired to `GET /api/owners/enquiries`
+/// (+ `/search`) via [enquiryListControllerProvider]: search, New/Contacted/
+/// Closed status filters, an unread count, and infinite scroll.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -13,47 +17,45 @@ import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../data/controllers/enquiry_provider.dart';
-import '../../data/mock_enquiry_data.dart';
+import '../../data/models/enquiry_model.dart';
 import '../widgets/enquiry_tile_widget.dart';
 
 /// Owner enquiry inbox.
-///
-/// Lists the enquiries from [enquiriesProvider] with a search box and
-/// All / New / Replied / Archived status filters. Tapping a tile pushes the
-/// detail route (so its back button returns here). Reads update live as the
-/// detail screen replies to or archives an enquiry.
 class EnquiryInboxScreen extends HookConsumerWidget {
+  /// Creates the inbox.
   const EnquiryInboxScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final List<Enquiry> enquiries = ref.watch(enquiriesProvider);
+    final EnquiryListState state = ref.watch(enquiryListControllerProvider);
+    final EnquiryListController controller =
+        ref.read(enquiryListControllerProvider.notifier);
     final TextEditingController searchController = useTextEditingController();
     final ValueNotifier<String> query = useState<String>('');
-    final ValueNotifier<EnquiryFilter> filter =
-        useState<EnquiryFilter>(EnquiryFilter.all);
+    final ScrollController scrollController = useScrollController();
 
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
 
-    final int unreadCount = enquiries
-        .where((Enquiry e) => e.status == EnquiryStatus.newEnquiry)
-        .length;
+    // Debounce the search box → controller.setQuery.
+    useEffect(() {
+      final Timer timer = Timer(
+        const Duration(milliseconds: 350),
+        () => controller.setQuery(query.value.trim()),
+      );
+      return timer.cancel;
+    }, <Object?>[query.value]);
 
-    final String q = query.value.trim().toLowerCase();
-    final List<Enquiry> filtered = enquiries.where((Enquiry e) {
-      final bool matchesFilter = switch (filter.value) {
-        EnquiryFilter.all => true,
-        EnquiryFilter.newEnquiry => e.status == EnquiryStatus.newEnquiry,
-        EnquiryFilter.replied => e.status == EnquiryStatus.replied,
-        EnquiryFilter.archived => e.status == EnquiryStatus.archived,
-      };
-      if (!matchesFilter) return false;
-      if (q.isEmpty) return true;
-      return e.studentName.toLowerCase().contains(q) ||
-          e.course.toLowerCase().contains(q) ||
-          e.preview.toLowerCase().contains(q);
-    }).toList();
+    // Infinite scroll: load the next page near the bottom.
+    useEffect(() {
+      void onScroll() {
+        final ScrollPosition p = scrollController.position;
+        if (p.pixels >= p.maxScrollExtent - 300) controller.loadMore();
+      }
+
+      scrollController.addListener(onScroll);
+      return () => scrollController.removeListener(onScroll);
+    }, <Object?>[scrollController]);
 
     void openEnquiry(String id) => context.pushNamed(
           AppRoutes.ownerEnquiryDetail,
@@ -88,12 +90,12 @@ class EnquiryInboxScreen extends HookConsumerWidget {
                           color: palette.textPrimary,
                         ),
                       ),
-                      if (unreadCount > 0) ...<Widget>[
+                      if (state.newCount > 0) ...<Widget>[
                         const SizedBox(width: AppSpacing.sp8),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
-                            '$unreadCount ${AppStrings.enquiriesUnreadSuffix}',
+                            '${state.newCount} ${AppStrings.enquiriesUnreadSuffix}',
                             style: textTheme.labelLarge?.copyWith(
                               color: AppColors.ownerAccent,
                               fontWeight: FontWeight.w600,
@@ -106,39 +108,26 @@ class EnquiryInboxScreen extends HookConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.sp12),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sp16,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.sp16),
                   child: _SearchField(
                     controller: searchController,
-                    onChanged: (String value) => query.value = value,
+                    onChanged: (String v) => query.value = v,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sp12),
                 _FilterBar(
-                  selected: filter.value,
-                  onSelected: (EnquiryFilter f) => filter.value = f,
+                  selected: state.filter,
+                  onSelected: controller.setFilter,
                 ),
                 const SizedBox(height: AppSpacing.sp16),
                 Expanded(
-                  child: filtered.isEmpty
-                      ? const _EmptyState()
-                      : ListView.separated(
-                          padding: EdgeInsets.fromLTRB(
-                            AppSpacing.sp16,
-                            0,
-                            AppSpacing.sp16,
-                            floatingNavClearance(context),
-                          ),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: AppSpacing.sp12),
-                          itemBuilder: (BuildContext context, int i) =>
-                              EnquiryTileWidget(
-                            enquiry: filtered[i],
-                            onTap: () => openEnquiry(filtered[i].id),
-                          ),
-                        ),
+                  child: _Body(
+                    state: state,
+                    scrollController: scrollController,
+                    onRetry: controller.load,
+                    onOpen: openEnquiry,
+                  ),
                 ),
               ],
             ),
@@ -149,7 +138,59 @@ class EnquiryInboxScreen extends HookConsumerWidget {
   }
 }
 
-/// Rounded search box for filtering the inbox by name, course, or message.
+/// The list region: spinner / error / empty / list (with a load-more footer).
+class _Body extends StatelessWidget {
+  const _Body({
+    required this.state,
+    required this.scrollController,
+    required this.onRetry,
+    required this.onOpen,
+  });
+
+  final EnquiryListState state;
+  final ScrollController scrollController;
+  final VoidCallback onRetry;
+  final ValueChanged<String> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isInitialLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.status == EnquiryListStatus.error && state.items.isEmpty) {
+      return _ErrorState(
+        message: state.errorMessage ?? AppStrings.enquiriesLoadError,
+        onRetry: onRetry,
+      );
+    }
+    if (state.items.isEmpty) return const _EmptyState();
+
+    final bool showFooter = state.status == EnquiryListStatus.loadingMore;
+    return ListView.separated(
+      controller: scrollController,
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.sp16,
+        0,
+        AppSpacing.sp16,
+        floatingNavClearance(context),
+      ),
+      itemCount: state.items.length + (showFooter ? 1 : 0),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sp12),
+      itemBuilder: (BuildContext context, int i) {
+        if (i >= state.items.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.sp16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final Enquiry e = state.items[i];
+        return EnquiryTileWidget(enquiry: e, onTap: () => onOpen(e.id));
+      },
+    );
+  }
+}
+
+/// Rounded search box.
 class _SearchField extends StatelessWidget {
   const _SearchField({required this.controller, required this.onChanged});
 
@@ -190,8 +231,8 @@ class _FilterBar extends StatelessWidget {
   static const List<(EnquiryFilter, String)> _items = <(EnquiryFilter, String)>[
     (EnquiryFilter.all, AppStrings.enquiriesFilterAll),
     (EnquiryFilter.newEnquiry, AppStrings.enquiriesFilterNew),
-    (EnquiryFilter.replied, AppStrings.enquiriesFilterReplied),
-    (EnquiryFilter.archived, AppStrings.enquiriesFilterArchived),
+    (EnquiryFilter.contacted, AppStrings.enquiriesFilterContacted),
+    (EnquiryFilter.closed, AppStrings.enquiriesFilterClosed),
   ];
 
   @override
@@ -216,7 +257,7 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-/// One status filter pill - filled accent when selected.
+/// One status filter pill — filled accent when selected.
 class _FilterPill extends StatelessWidget {
   const _FilterPill({
     required this.label,
@@ -262,7 +303,7 @@ class _FilterPill extends StatelessWidget {
   }
 }
 
-/// Centered empty state shown when no enquiry matches the search/filter.
+/// Centered empty state.
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -276,11 +317,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(
-              Icons.inbox_outlined,
-              size: 48,
-              color: palette.iconFaint,
-            ),
+            Icon(Icons.inbox_outlined, size: 48, color: palette.iconFaint),
             const SizedBox(height: AppSpacing.sp12),
             Text(
               AppStrings.enquiriesEmptyTitle,
@@ -294,6 +331,48 @@ class _EmptyState extends StatelessWidget {
               AppStrings.enquiriesEmptySubtitle,
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Inline load-failure state with a retry button.
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sp32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.cloud_off, size: 48, color: palette.iconFaint),
+            const SizedBox(height: AppSpacing.sp12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: palette.textMuted),
+            ),
+            const SizedBox(height: AppSpacing.sp16),
+            FilledButton(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.ownerAccent,
+                foregroundColor: AppColors.neutralWhite,
+              ),
+              child: const Text(AppStrings.dashboardRetry),
             ),
           ],
         ),

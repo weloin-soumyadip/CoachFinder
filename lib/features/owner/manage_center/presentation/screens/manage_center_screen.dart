@@ -1,4 +1,6 @@
-/// Center tab - read view of the owner's coaching center with an Edit button.
+/// Center tab — read view of the owner's coaching center, wired to
+/// `GET /api/centers/me` via [manageCenterControllerProvider]. An Edit button
+/// pushes the edit form; saving there updates this view live.
 library;
 
 import 'package:flutter/material.dart';
@@ -16,23 +18,35 @@ import '../../../../../shared/widgets/glass_panel.dart';
 import '../../../../../shared/widgets/neo_button.dart';
 import '../../../../../shared/widgets/neo_surface.dart';
 import '../../data/controllers/manage_center_provider.dart';
-import '../../data/mock_center_data.dart';
-import '../widgets/image_upload_widget.dart';
+import '../../data/models/owner_center.dart';
+import '../../data/models/subject_option.dart';
 
 /// Owner Center tab.
-///
-/// Displays the center the way students see it - identity, a read-only stats
-/// strip, about, subjects, boards, timings, photos, contact, and fees - from
-/// [manageCenterProvider]. The Edit button pushes the edit form; saving there
-/// updates this view live.
 class ManageCenterScreen extends HookConsumerWidget {
+  /// Creates the read view.
   const ManageCenterScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final CenterProfile center = ref.watch(manageCenterProvider);
+    final ManageCenterState state = ref.watch(manageCenterControllerProvider);
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
+    final OwnerCenter? center = state.center;
+
+    Widget body;
+    if (center == null && state.isLoading) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.sp48),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (center == null) {
+      body = _LoadError(
+        message: state.errorMessage ?? AppStrings.centerLoadError,
+        onRetry: () => ref.read(manageCenterControllerProvider.notifier).load(),
+      );
+    } else {
+      body = _CenterBody(center: center);
+    }
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -67,64 +81,28 @@ class ManageCenterScreen extends HookConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sp12),
-                          NeoButton(
-                            onPressed: () =>
-                                context.pushNamed(AppRoutes.ownerEditCenter),
-                            accent: AppColors.ownerAccent,
-                            height: 44,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const <Widget>[
-                                Icon(Icons.edit_outlined, size: 18),
-                                SizedBox(width: AppSpacing.sp8),
-                                Text(AppStrings.centerEdit),
-                              ],
+                          if (center != null) ...<Widget>[
+                            const SizedBox(width: AppSpacing.sp12),
+                            NeoButton(
+                              onPressed: () =>
+                                  context.pushNamed(AppRoutes.ownerEditCenter),
+                              accent: AppColors.ownerAccent,
+                              height: 44,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const <Widget>[
+                                  Icon(Icons.edit_outlined, size: 18),
+                                  SizedBox(width: AppSpacing.sp8),
+                                  Text(AppStrings.centerEdit),
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sp24),
-                    _StatsStrip(center: center),
-                    const SizedBox(height: AppSpacing.sp16),
-                    _IdentityCard(center: center),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionAbout),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _Card(
-                      child: Text(
-                        center.about,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: palette.textSecondary,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionSubjects),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _ReadChips(labels: center.subjects),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionBoards),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _ReadChips(labels: center.boards),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionTimings),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _TimingsCard(timings: center.timings),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionPhotos),
-                    const SizedBox(height: AppSpacing.sp12),
-                    ImageUploadWidget(photos: center.photos),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionContact),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _ContactCard(center: center),
-                    const SizedBox(height: AppSpacing.sp24),
-                    _SectionTitle(title: AppStrings.centerSectionFees),
-                    const SizedBox(height: AppSpacing.sp12),
-                    _FeesCard(fees: center.fees),
+                    body,
                   ],
                 ),
               ),
@@ -136,11 +114,84 @@ class ManageCenterScreen extends HookConsumerWidget {
   }
 }
 
-/// Read-only views / rating / reviews strip.
+/// The loaded centre's sections.
+class _CenterBody extends StatelessWidget {
+  const _CenterBody({required this.center});
+
+  final OwnerCenter center;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
+    final String description = (center.description ?? '').trim().isEmpty
+        ? AppStrings.centerNotSet
+        : center.description!.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _StatsStrip(center: center),
+        const SizedBox(height: AppSpacing.sp16),
+        _IdentityCard(center: center),
+        const SizedBox(height: AppSpacing.sp24),
+        _SectionTitle(title: AppStrings.centerSectionAbout),
+        const SizedBox(height: AppSpacing.sp12),
+        _Card(
+          child: Text(
+            description,
+            style: textTheme.bodyMedium?.copyWith(
+              color: palette.textSecondary,
+              height: 1.45,
+            ),
+          ),
+        ),
+        if (center.subjects.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppSpacing.sp24),
+          _SectionTitle(title: AppStrings.centerSectionSubjects),
+          const SizedBox(height: AppSpacing.sp12),
+          _ReadChips(
+            labels: center.subjects
+                .map((SubjectOption s) => s.name)
+                .where((String n) => n.isNotEmpty)
+                .toList(),
+          ),
+        ],
+        if (center.boards.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppSpacing.sp24),
+          _SectionTitle(title: AppStrings.centerSectionBoards),
+          const SizedBox(height: AppSpacing.sp12),
+          _ReadChips(labels: center.boards),
+        ],
+        if (center.classRange != null &&
+            !center.classRange!.isEmpty) ...<Widget>[
+          const SizedBox(height: AppSpacing.sp24),
+          _SectionTitle(title: AppStrings.centerSectionClasses),
+          const SizedBox(height: AppSpacing.sp12),
+          _ReadChips(labels: <String>[_classRangeLabel(center.classRange!)]),
+        ],
+        const SizedBox(height: AppSpacing.sp24),
+        _SectionTitle(title: AppStrings.centerSectionTimings),
+        const SizedBox(height: AppSpacing.sp12),
+        _TimingsCard(timings: center.timings),
+        const SizedBox(height: AppSpacing.sp24),
+        _SectionTitle(title: AppStrings.centerSectionContact),
+        const SizedBox(height: AppSpacing.sp12),
+        _ContactCard(center: center),
+        const SizedBox(height: AppSpacing.sp24),
+        _SectionTitle(title: AppStrings.centerSectionFees),
+        const SizedBox(height: AppSpacing.sp12),
+        _Card(child: _FeesText(fees: center.fees)),
+      ],
+    );
+  }
+}
+
+/// Read-only rating / reviews strip.
 class _StatsStrip extends StatelessWidget {
   const _StatsStrip({required this.center});
 
-  final CenterProfile center;
+  final OwnerCenter center;
 
   @override
   Widget build(BuildContext context) {
@@ -151,21 +202,14 @@ class _StatsStrip extends StatelessWidget {
           children: <Widget>[
             Expanded(
               child: _Stat(
-                value: _withCommas(center.profileViews),
-                label: AppStrings.centerStatViews,
-              ),
-            ),
-            _StatDivider(),
-            Expanded(
-              child: _Stat(
-                value: center.rating.toStringAsFixed(1),
+                value: center.averageRating.toStringAsFixed(1),
                 label: AppStrings.centerStatRating,
               ),
             ),
             _StatDivider(),
             Expanded(
               child: _Stat(
-                value: center.reviewCount.toString(),
+                value: center.totalReviews.toString(),
                 label: AppStrings.centerStatReviews,
               ),
             ),
@@ -218,16 +262,19 @@ class _StatDivider extends StatelessWidget {
   }
 }
 
-/// Logo, name, tagline, and location.
+/// Logo, name, and location.
 class _IdentityCard extends StatelessWidget {
   const _IdentityCard({required this.center});
 
-  final CenterProfile center;
+  final OwnerCenter center;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
+    final String initial =
+        center.name.isEmpty ? '?' : center.name[0].toUpperCase();
+    final String location = _locationLabel(center);
     return _Card(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,12 +283,12 @@ class _IdentityCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: center.logoColor,
+              color: AppColors.ownerAccent,
               borderRadius: BorderRadius.circular(AppSpacing.sp16),
             ),
             alignment: Alignment.center,
             child: Text(
-              center.initial,
+              initial,
               style: textTheme.headlineSmall?.copyWith(
                 color: AppColors.neutralWhite,
                 fontWeight: FontWeight.w700,
@@ -260,32 +307,29 @@ class _IdentityCard extends StatelessWidget {
                     color: palette.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  center.tagline,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: palette.textMuted,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sp8),
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.location_on_outlined,
-                      size: 16,
-                      color: palette.textMuted,
-                    ),
-                    const SizedBox(width: AppSpacing.sp4),
-                    Flexible(
-                      child: Text(
-                        center.location,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: palette.textSecondary,
+                if (location.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: AppSpacing.sp8),
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: palette.textMuted,
+                      ),
+                      const SizedBox(width: AppSpacing.sp4),
+                      Flexible(
+                        child: Text(
+                          location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: palette.textSecondary,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -295,7 +339,7 @@ class _IdentityCard extends StatelessWidget {
   }
 }
 
-/// Read-only accent-tinted chips (subjects / boards).
+/// Read-only accent-tinted chips (subjects / boards / classes).
 class _ReadChips extends StatelessWidget {
   const _ReadChips({required this.labels});
 
@@ -330,16 +374,24 @@ class _ReadChips extends StatelessWidget {
   }
 }
 
-/// Read-only weekly timings list.
+/// Read-only weekly timings list (empty-state when none set).
 class _TimingsCard extends StatelessWidget {
   const _TimingsCard({required this.timings});
 
-  final List<DayTiming> timings;
+  final List<CenterTiming> timings;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
+    if (timings.isEmpty) {
+      return _Card(
+        child: Text(
+          AppStrings.centerNotSet,
+          style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+        ),
+      );
+    }
     return _Card(
       padding: EdgeInsets.zero,
       child: Column(
@@ -365,17 +417,13 @@ class _TimingsCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    timings[i].isOpen
-                        ? '${formatTimeOfDay(timings[i].openAt)} '
-                            '${AppStrings.centerTimingTo} '
-                            '${formatTimeOfDay(timings[i].closeAt)}'
-                        : AppStrings.centerTimingClosed,
+                    _timingLabel(timings[i]),
                     style: textTheme.bodyMedium?.copyWith(
-                      color: timings[i].isOpen
-                          ? palette.textSecondary
-                          : palette.textMuted,
+                      color: timings[i].closed
+                          ? palette.textMuted
+                          : palette.textSecondary,
                       fontWeight:
-                          timings[i].isOpen ? FontWeight.w600 : FontWeight.w400,
+                          timings[i].closed ? FontWeight.w400 : FontWeight.w600,
                     ),
                   ),
                 ],
@@ -388,25 +436,34 @@ class _TimingsCard extends StatelessWidget {
   }
 }
 
-/// Phone, email, and address rows.
+/// Phone, alternate phone, email, website, and address rows.
 class _ContactCard extends StatelessWidget {
   const _ContactCard({required this.center});
 
-  final CenterProfile center;
+  final OwnerCenter center;
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> rows = <Widget>[
+      _ContactRow(icon: Icons.phone_outlined, value: center.phone),
+      if ((center.alternatePhone ?? '').isNotEmpty)
+        _ContactRow(
+          icon: Icons.phone_iphone_outlined,
+          value: center.alternatePhone!,
+        ),
+      if ((center.email ?? '').isNotEmpty)
+        _ContactRow(icon: Icons.email_outlined, value: center.email!),
+      if ((center.website ?? '').isNotEmpty)
+        _ContactRow(icon: Icons.language_outlined, value: center.website!),
+      _ContactRow(icon: Icons.location_on_outlined, value: center.address),
+    ];
     return _Card(
       child: Column(
         children: <Widget>[
-          _ContactRow(icon: Icons.phone_outlined, value: center.phone),
-          const SizedBox(height: AppSpacing.sp12),
-          _ContactRow(icon: Icons.email_outlined, value: center.email),
-          const SizedBox(height: AppSpacing.sp12),
-          _ContactRow(
-            icon: Icons.location_on_outlined,
-            value: center.address,
-          ),
+          for (int i = 0; i < rows.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: AppSpacing.sp12),
+            rows[i],
+          ],
         ],
       ),
     );
@@ -441,50 +498,28 @@ class _ContactRow extends StatelessWidget {
   }
 }
 
-/// Course + fee rows.
-class _FeesCard extends StatelessWidget {
-  const _FeesCard({required this.fees});
+/// Fee range text (or an empty state).
+class _FeesText extends StatelessWidget {
+  const _FeesText({required this.fees});
 
-  final List<CourseFee> fees;
+  final CenterFees? fees;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final palette = context.palette;
-    return _Card(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: <Widget>[
-          for (int i = 0; i < fees.length; i++) ...<Widget>[
-            if (i > 0) Divider(height: 1, color: palette.borderSubtle),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sp16,
-                vertical: AppSpacing.sp12,
-              ),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      fees[i].course,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: palette.textPrimary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sp12),
-                  Text(
-                    fees[i].fee,
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.priceGreen,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+    final CenterFees? f = fees;
+    if (f == null || f.isEmpty) {
+      return Text(
+        AppStrings.centerNotSet,
+        style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+      );
+    }
+    return Text(
+      _feeRangeLabel(f),
+      style: textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: AppColors.priceGreen,
       ),
     );
   }
@@ -508,7 +543,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// Outset neomorphic surface used for most independent content sections.
+/// Outset neomorphic surface used for most content sections.
 class _Card extends StatelessWidget {
   const _Card({required this.child, this.padding});
 
@@ -524,8 +559,96 @@ class _Card extends StatelessWidget {
   }
 }
 
-/// Inserts thousands separators into a non-negative integer (e.g. 1248 ->
-/// "1,248").
+/// Inline load-failure state with a retry button.
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp48),
+      child: Column(
+        children: <Widget>[
+          Icon(Icons.cloud_off, size: 48, color: palette.iconFaint),
+          const SizedBox(height: AppSpacing.sp12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: palette.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.sp16),
+          FilledButton(
+            onPressed: onRetry,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.ownerAccent,
+              foregroundColor: AppColors.neutralWhite,
+            ),
+            child: const Text(AppStrings.dashboardRetry),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Joins area + city into a single "Area, City" label (dropping empties).
+String _locationLabel(OwnerCenter c) {
+  return <String>[c.area ?? '', c.city]
+      .map((String s) => s.trim())
+      .where((String s) => s.isNotEmpty)
+      .join(', ');
+}
+
+/// "Class 6–10" / "From Class 6" / "Up to Class 10".
+String _classRangeLabel(CenterClassRange r) {
+  if (r.from != null && r.to != null) {
+    return '${AppStrings.centerClassPrefix}${r.from}–${r.to}';
+  }
+  if (r.from != null) return '${AppStrings.centerClassPrefix}${r.from}+';
+  return '${AppStrings.centerClassPrefix}${r.to}';
+}
+
+/// "₹1,000 – ₹5,000".
+String _feeRangeLabel(CenterFees f) {
+  final String sym = f.currency == 'INR' ? '₹' : '${f.currency} ';
+  final String? lo =
+      f.min == null ? null : '$sym${_withCommas(f.min!.round())}';
+  final String? hi =
+      f.max == null ? null : '$sym${_withCommas(f.max!.round())}';
+  if (lo != null && hi != null) return '$lo${AppStrings.centerFeeRangeSep}$hi';
+  return lo ?? hi ?? AppStrings.centerNotSet;
+}
+
+/// "4:00 PM to 7:00 PM" or "Closed".
+String _timingLabel(CenterTiming t) {
+  if (t.closed) return AppStrings.centerTimingClosed;
+  final String open = _formatHhmm(t.openTime);
+  final String close = _formatHhmm(t.closeTime);
+  if (open.isEmpty && close.isEmpty) return AppStrings.centerTimingClosed;
+  return '$open ${AppStrings.centerTimingTo} $close';
+}
+
+/// Formats a backend `HH:mm` into "h:mm AM/PM", or '' when null/malformed.
+String _formatHhmm(String? hhmm) {
+  if (hhmm == null) return '';
+  final List<String> parts = hhmm.split(':');
+  if (parts.length != 2) return '';
+  final int? h = int.tryParse(parts[0]);
+  final int? m = int.tryParse(parts[1]);
+  if (h == null || m == null) return '';
+  final String period = h < 12 ? 'AM' : 'PM';
+  final int h12 = h % 12 == 0 ? 12 : h % 12;
+  return '$h12:${m.toString().padLeft(2, '0')} $period';
+}
+
+/// Inserts thousands separators into a non-negative integer.
 String _withCommas(int value) {
   final String digits = value.toString();
   final StringBuffer out = StringBuffer();

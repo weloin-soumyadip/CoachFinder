@@ -6,19 +6,25 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
+import '../../data/models/subject_option.dart';
 
-/// A wrap of toggleable subject chips. Selected subjects fill with the owner
-/// accent; tapping a chip toggles it via [onToggle].
+/// A wrap of toggleable subject chips. Selected subjects (by id) fill with the
+/// owner accent; tapping a chip toggles it via [onToggle] (the subject id).
 class SubjectSelectorWidget extends StatelessWidget {
   const SubjectSelectorWidget({
     super.key,
     required this.options,
-    required this.selected,
+    required this.selectedIds,
     required this.onToggle,
   });
 
-  final List<String> options;
-  final List<String> selected;
+  /// All selectable subjects.
+  final List<SubjectOption> options;
+
+  /// The ids currently selected.
+  final Set<String> selectedIds;
+
+  /// Fired with a subject id when its chip is tapped.
   final ValueChanged<String> onToggle;
 
   @override
@@ -27,11 +33,11 @@ class SubjectSelectorWidget extends StatelessWidget {
       spacing: AppSpacing.sp8,
       runSpacing: AppSpacing.sp8,
       children: <Widget>[
-        for (final String option in options)
+        for (final SubjectOption option in options)
           _SelectableChip(
-            label: option,
-            selected: selected.contains(option),
-            onTap: () => onToggle(option),
+            label: option.name,
+            selected: selectedIds.contains(option.id),
+            onTap: () => onToggle(option.id),
           ),
       ],
     );

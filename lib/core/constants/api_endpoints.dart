@@ -9,7 +9,7 @@ library;
 abstract final class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String baseUrl = 'http://192.168.1.106:5000/api';
+  static const String baseUrl = 'http://192.168.1.37:5000/api';
 
   // Auth (paths to be confirmed when the backend contract is shared)
   static const String authLogin = '/auth/login';

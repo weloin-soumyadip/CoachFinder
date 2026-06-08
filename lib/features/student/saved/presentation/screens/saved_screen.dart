@@ -1,33 +1,82 @@
-/// Student Saved screen - search field, All/Coachings/Tutors filter, and the
-/// bookmarked tutors and coaching institutes.
+/// Student Saved screen - the student's bookmarks (tutors, coachings, webinars)
+/// from `GET /api/students/bookmarks`, with live search, a type filter, and an
+/// unsave (bookmark) toggle on every card.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../../core/constants/app_strings.dart';
+import '../../../../../core/router/app_routes.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_palette.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../shared/layouts/adaptive_navigation.dart';
 import '../../../../../shared/widgets/glass_panel.dart';
-import '../../../search/data/mock_search_data.dart';
-import '../../../search/presentation/widgets/institute_result_card.dart';
+import '../../../search/data/models/search_result_model.dart';
+import '../../../search/presentation/widgets/center_search_card.dart';
 import '../../../search/presentation/widgets/search_field_widget.dart';
-import '../../../search/presentation/widgets/teacher_result_card.dart';
-import '../../data/mock_saved_data.dart';
+import '../../../search/presentation/widgets/teacher_search_card.dart';
+import '../../../search/presentation/widgets/webinar_search_card.dart';
+import '../../data/controllers/bookmarks_provider.dart';
+import '../../data/models/bookmark_model.dart';
+import '../widgets/bookmark_toggle_button.dart';
 
-/// Student Saved screen.
+/// Which kind of saved item the filter is narrowing to.
+enum SavedFilter {
+  /// Everything the student saved.
+  all,
+
+  /// Saved teachers / tutors.
+  tutors,
+
+  /// Saved coaching centers.
+  coachings,
+
+  /// Saved webinars.
+  webinars;
+
+  /// The target type this filter maps to, or null for [SavedFilter.all].
+  BookmarkTargetType? get targetType {
+    switch (this) {
+      case SavedFilter.all:
+        return null;
+      case SavedFilter.tutors:
+        return BookmarkTargetType.teacher;
+      case SavedFilter.coachings:
+        return BookmarkTargetType.coachingCenter;
+      case SavedFilter.webinars:
+        return BookmarkTargetType.webinar;
+    }
+  }
+
+  /// The pill label.
+  String get label {
+    switch (this) {
+      case SavedFilter.all:
+        return AppStrings.savedFilterAll;
+      case SavedFilter.tutors:
+        return AppStrings.savedFilterTutors;
+      case SavedFilter.coachings:
+        return AppStrings.savedFilterCoachings;
+      case SavedFilter.webinars:
+        return AppStrings.savedFilterWebinars;
+    }
+  }
+}
+
+/// Student Saved screen, wired to the bookmarks backend.
 ///
-/// Phase 1: the saved tutors and coachings come from `mock_saved_data.dart` and
-/// live in local hook state so the un-save (filled bookmark) control on each
-/// card actually removes it. A search field filters the saved items live, and
-/// an All / Coachings / Tutors control narrows by type. Cards reuse the Search
-/// result cards and flow into the same responsive grid (1 column on phones, up
-/// to 3 on wide layouts). Card taps remain placeholders; clearing the list (or
-/// a non-matching search) shows an empty state.
+/// Watches [bookmarksControllerProvider] (the full saved set, loaded once and
+/// kept in sync with the Search-card toggle). A search field filters the loaded
+/// items live, and an All / Tutors / Coachings / Webinars control narrows by
+/// type. Each bookmark renders through the matching Search result card with a
+/// filled bookmark toggle that removes it. Loading shows a spinner; a failed
+/// load shows an inline retry; an empty set (or no match) shows an empty state.
 class SavedScreen extends HookConsumerWidget {
+  /// Creates the student Saved screen.
   const SavedScreen({super.key});
 
   @override
@@ -35,52 +84,42 @@ class SavedScreen extends HookConsumerWidget {
     final controller = useTextEditingController();
     final query = useState<String>('');
     final filter = useState<SavedFilter>(SavedFilter.all);
-    final tutors = useState<List<SearchTeacher>>(List.of(mockSavedTutors));
-    final coachings =
-        useState<List<SearchInstitute>>(List.of(mockSavedCoachings));
+
+    final state = ref.watch(bookmarksControllerProvider);
+    final notifier = ref.read(bookmarksControllerProvider.notifier);
+
+    // Refetch the saved set every time the screen is entered. The controller
+    // only fetches once on first creation (which may have happened earlier via
+    // a Search bookmark button, or failed), so without this the list could be
+    // stale or never load when the Saved tab is opened. The controller guards
+    // against an overlapping fetch, so this is safe alongside that first load.
+    useEffect(() {
+      notifier.load();
+      return null;
+    }, const <Object?>[]);
 
     void clear() {
       controller.clear();
       query.value = '';
     }
 
-    void removeTutor(String id) {
-      tutors.value =
-          tutors.value.where((SearchTeacher t) => t.id != id).toList();
+    final String q = query.value.trim().toLowerCase();
+    final BookmarkTargetType? typeFilter = filter.value.targetType;
+
+    bool matches(Bookmark b) {
+      if (typeFilter != null && b.targetType != typeFilter) return false;
+      if (q.isEmpty) return true;
+      final String name = (b.target['name'] ?? b.target['title'] ?? '')
+          .toString()
+          .toLowerCase();
+      return name.contains(q);
     }
 
-    void removeCoaching(String id) {
-      coachings.value =
-          coachings.value.where((SearchInstitute c) => c.id != id).toList();
-    }
-
-    final q = query.value.trim().toLowerCase();
-
-    bool tutorMatches(SearchTeacher t) =>
-        q.isEmpty ||
-        t.name.toLowerCase().contains(q) ||
-        t.title.toLowerCase().contains(q) ||
-        t.tags.any((String tag) => tag.toLowerCase().contains(q));
-
-    bool coachingMatches(SearchInstitute c) =>
-        q.isEmpty ||
-        c.name.toLowerCase().contains(q) ||
-        c.location.toLowerCase().contains(q) ||
-        c.tags.any((String tag) => tag.toLowerCase().contains(q));
-
-    final visibleCoachings = filter.value == SavedFilter.tutors
-        ? const <SearchInstitute>[]
-        : coachings.value.where(coachingMatches).toList();
-    final visibleTutors = filter.value == SavedFilter.coachings
-        ? const <SearchTeacher>[]
-        : tutors.value.where(tutorMatches).toList();
-    final total = visibleCoachings.length + visibleTutors.length;
+    final List<Bookmark> visible = state.bookmarks.where(matches).toList();
 
     return Scaffold(
       body: DecoratedBox(
-        // Subtle vertical brand-tint wash at the top that fades into the flat
-        // background within the first ~40% of the viewport, matching the Home
-        // and Search tabs' backdrop.
+        // Subtle brand-tint wash at the top, matching the Home and Search tabs.
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -96,9 +135,8 @@ class SavedScreen extends HookConsumerWidget {
           bottom: false,
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              // Responsive grid sizing, measured on the content area so it stays
-              // correct inside the desktop NavigationRail. Content is capped and
-              // centred so cards don't stretch on very wide windows.
+              // Responsive grid sizing, capped + centred so cards don't stretch
+              // on very wide windows / inside the desktop NavigationRail.
               final cappedWidth =
                   constraints.maxWidth > 1100 ? 1100.0 : constraints.maxWidth;
               final contentWidth = cappedWidth - AppSpacing.sp16 * 2;
@@ -115,8 +153,7 @@ class SavedScreen extends HookConsumerWidget {
                     constraints: const BoxConstraints(maxWidth: 1100),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sp16,
-                      ),
+                          horizontal: AppSpacing.sp16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
@@ -144,18 +181,13 @@ class SavedScreen extends HookConsumerWidget {
                             onChanged: (SavedFilter f) => filter.value = f,
                           ),
                           const SizedBox(height: AppSpacing.sp24),
-                          if (total == 0)
-                            const _SavedEmpty()
-                          else
-                            _SavedList(
-                              count: total,
-                              coachings: visibleCoachings,
-                              tutors: visibleTutors,
-                              cardWidth: cardWidth,
-                              gap: gap,
-                              onRemoveCoaching: removeCoaching,
-                              onRemoveTutor: removeTutor,
-                            ),
+                          _Body(
+                            state: state,
+                            visible: visible,
+                            cardWidth: cardWidth,
+                            gap: gap,
+                            onRetry: notifier.load,
+                          ),
                         ],
                       ),
                     ),
@@ -170,7 +202,134 @@ class SavedScreen extends HookConsumerWidget {
   }
 }
 
-/// All / Coachings / Tutors filter control (three equal-width pills).
+/// Switches between loading / error / empty / list off the [BookmarkState].
+class _Body extends StatelessWidget {
+  const _Body({
+    required this.state,
+    required this.visible,
+    required this.cardWidth,
+    required this.gap,
+    required this.onRetry,
+  });
+
+  final BookmarkState state;
+  final List<Bookmark> visible;
+  final double cardWidth;
+  final double gap;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    // First load with nothing cached.
+    if (state.isLoading && state.bookmarks.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp48),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const CircularProgressIndicator(),
+              const SizedBox(height: AppSpacing.sp12),
+              // TEMP DIAGNOSTIC: surface the live state so a screenshot of the
+              // stuck spinner tells us exactly why it is showing.
+              Text(
+                'DEBUG status=${state.status} '
+                'items=${state.bookmarks.length} '
+                'visible=${visible.length} err=${state.errorMessage}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11, color: Colors.redAccent),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    // Load failed and there's nothing to show.
+    if (state.status == BookmarkStatus.error && state.bookmarks.isEmpty) {
+      return _ErrorState(
+        message: state.errorMessage ?? AppStrings.savedLoadError,
+        onRetry: onRetry,
+      );
+    }
+    if (visible.isEmpty) return const _SavedEmpty();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          '${visible.length} ${AppStrings.savedCountWord}',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: context.palette.textMuted,
+              ),
+        ),
+        const SizedBox(height: AppSpacing.sp12),
+        Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: <Widget>[
+            for (final Bookmark b in visible)
+              SizedBox(width: cardWidth, child: _SavedCard(bookmark: b)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Renders one bookmark through the matching Search result card, with a filled
+/// bookmark toggle (tapping it removes the bookmark via the shared controller).
+class _SavedCard extends StatelessWidget {
+  const _SavedCard({required this.bookmark});
+
+  final Bookmark bookmark;
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text(AppStrings.stubComingSoon)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final action = BookmarkToggleButton(
+      targetType: bookmark.targetType,
+      targetId: bookmark.targetId,
+    );
+    switch (bookmark.targetType) {
+      case BookmarkTargetType.teacher:
+        final TeacherSearchResult teacher =
+            TeacherSearchResult.fromJson(bookmark.target);
+        return TeacherSearchCard(
+          teacher: teacher,
+          onTap: () => context.pushNamed(
+            AppRoutes.studentTeacherDetail,
+            pathParameters: <String, String>{'id': teacher.id},
+            extra: teacher.subjects,
+          ),
+          headerAction: action,
+        );
+      case BookmarkTargetType.coachingCenter:
+        return CenterSearchCard(
+          center: CenterSearchResult.fromJson(bookmark.target),
+          onTap: () => context.pushNamed(
+            AppRoutes.studentCenterDetail,
+            pathParameters: <String, String>{'id': bookmark.targetId},
+          ),
+          headerAction: action,
+        );
+      case BookmarkTargetType.webinar:
+        return WebinarSearchCard(
+          webinar: WebinarSearchResult.fromJson(bookmark.target),
+          onJoin: () => _showComingSoon(context),
+          headerAction: action,
+        );
+    }
+  }
+}
+
+/// All / Tutors / Coachings / Webinars control. Scrolls horizontally so the
+/// four labels never overflow on a narrow phone.
 class _FilterControl extends StatelessWidget {
   const _FilterControl({required this.selected, required this.onChanged});
 
@@ -179,37 +338,25 @@ class _FilterControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _FilterPill(
-            label: AppStrings.savedFilterAll,
-            selected: selected == SavedFilter.all,
-            onTap: () => onChanged(SavedFilter.all),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sp8),
-        Expanded(
-          child: _FilterPill(
-            label: AppStrings.savedFilterCoachings,
-            selected: selected == SavedFilter.coachings,
-            onTap: () => onChanged(SavedFilter.coachings),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sp8),
-        Expanded(
-          child: _FilterPill(
-            label: AppStrings.savedFilterTutors,
-            selected: selected == SavedFilter.tutors,
-            onTap: () => onChanged(SavedFilter.tutors),
-          ),
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: <Widget>[
+          for (int i = 0; i < SavedFilter.values.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(width: AppSpacing.sp8),
+            _FilterPill(
+              label: SavedFilter.values[i].label,
+              selected: selected == SavedFilter.values[i],
+              onTap: () => onChanged(SavedFilter.values[i]),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
-/// One pill in [_FilterControl]. Filled blue when selected, outlined when not.
+/// One pill in [_FilterControl]. Filled blue when selected, frosted when not.
 class _FilterPill extends StatelessWidget {
   const _FilterPill({
     required this.label,
@@ -224,15 +371,16 @@ class _FilterPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    // Shared tap target + label. The settled (selected) pill is a filled brand
-    // fill so selection stays unmistakable; unselected pills are frosted glass.
     final Widget inner = Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.sp12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp12),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.sp12,
+            horizontal: AppSpacing.sp24,
+          ),
           alignment: Alignment.center,
           child: Text(
             label,
@@ -260,67 +408,6 @@ class _FilterPill extends StatelessWidget {
   }
 }
 
-/// The saved results: a "N saved" count line then the responsive card grid.
-class _SavedList extends StatelessWidget {
-  const _SavedList({
-    required this.count,
-    required this.coachings,
-    required this.tutors,
-    required this.cardWidth,
-    required this.gap,
-    required this.onRemoveCoaching,
-    required this.onRemoveTutor,
-  });
-
-  final int count;
-  final List<SearchInstitute> coachings;
-  final List<SearchTeacher> tutors;
-  final double cardWidth;
-  final double gap;
-  final ValueChanged<String> onRemoveCoaching;
-  final ValueChanged<String> onRemoveTutor;
-
-  @override
-  Widget build(BuildContext context) {
-    final cards = <Widget>[
-      for (final SearchInstitute c in coachings)
-        InstituteResultCard(
-          institute: c,
-          onTap: () {},
-          onUnsave: () => onRemoveCoaching(c.id),
-        ),
-      for (final SearchTeacher t in tutors)
-        TeacherResultCard(
-          teacher: t,
-          onTap: () {},
-          onUnsave: () => onRemoveTutor(t.id),
-        ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          '$count ${AppStrings.savedCountWord}',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: context.palette.textMuted,
-              ),
-        ),
-        const SizedBox(height: AppSpacing.sp12),
-        Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: <Widget>[
-            for (final Widget card in cards)
-              SizedBox(width: cardWidth, child: card),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 /// Shown when nothing is saved (or a search/filter matches nothing).
 class _SavedEmpty extends StatelessWidget {
   const _SavedEmpty();
@@ -333,11 +420,7 @@ class _SavedEmpty extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp48),
       child: Column(
         children: <Widget>[
-          Icon(
-            Icons.bookmark_border,
-            size: 48,
-            color: palette.iconFaint,
-          ),
+          Icon(Icons.bookmark_border, size: 48, color: palette.iconFaint),
           const SizedBox(height: AppSpacing.sp12),
           Text(
             AppStrings.savedEmptyTitle,
@@ -350,9 +433,40 @@ class _SavedEmpty extends StatelessWidget {
           Text(
             AppStrings.savedEmptySubtitle,
             textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: palette.textMuted,
-            ),
+            style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown when the bookmark load fails and nothing is cached.
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sp48),
+      child: Column(
+        children: <Widget>[
+          Icon(Icons.cloud_off, size: 48, color: palette.iconFaint),
+          const SizedBox(height: AppSpacing.sp12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.sp16),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text(AppStrings.savedRetry),
           ),
         ],
       ),
